@@ -1,5 +1,9 @@
 #!/bin/bash
-
+# 
+# Author
+# Chengjia Xu, CSE of UNSW
+# ID: 5025306
+#
 #####################################
 # about the "whitespace" around "=" #
 #####################################
