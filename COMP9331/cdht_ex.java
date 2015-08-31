@@ -124,10 +124,10 @@ public class cdht_ex { //class cdht_ex will run DHT, along with the other 4 thre
 }
 
 /*********************************************************************************
- * 																				 *
- *  								    DHT 									 *
- *  																			 *
- *  																			 *
+ * 										*
+ *  								    DHT 	*
+ *  										*
+ *  										*
  *********************************************************************************/
 //class DHT will run 4 threads: UDP_PING_Server, UDP_PING_Client, TCP_Server, TCP_Client
 class DHT extends Thread{
@@ -182,10 +182,10 @@ class DHT extends Thread{
 	}	
 
 	/*********************************************************************************
-	 * 																				 *
-	 *  								PING SERVER									 *
-	 *  																			 *
-	 *  																			 *
+	 * 										*
+	 *  								PING SERVER	*
+	 *  										*
+	 *  										*
 	 *********************************************************************************/
 	class UDP_PING_Server extends Thread {
 		int incomingP = -1;
@@ -361,10 +361,10 @@ class DHT extends Thread{
 	
 
 	/*********************************************************************************
-	 * 																				 *
-	 *  								PING CLIENT									 *
-	 *  																			 *
-	 *  																			 *
+	 * 										*
+	 *  								PING CLIENT	*
+	 *  										*
+	 *  										*
 	 *********************************************************************************/
 	//client sends the echoRequests to servers, and waits for echoReply from the server. A PING client will also 
 	//responsible for checking the sequence number in return packets
@@ -431,10 +431,10 @@ class DHT extends Thread{
 
 	
 	/*********************************************************************************
-	 * 																				 *
-	 *  								PING TIMER									 *
-	 *  				    failed part, changed to thread sleep					 *
-	 *  																			 *
+	 * 										*
+	 *  								PING TIMER	*
+	 *  				    failed part, changed to thread sleep	*
+	 *  										*
 	 *********************************************************************************/
 	
 	// timer is working, but the "true" state keeps too long the the ping client can sends multi messages
@@ -467,10 +467,10 @@ class DHT extends Thread{
 
 
 	/*********************************************************************************
-	 * 																				 *
-	 *  								TCP SERVER									 *
-	 *  																			 *
-	 *  																			 *
+	 * 										*
+	 *  								TCP SERVER	*
+	 *  										*
+	 *  										*
 	 *********************************************************************************/
 	class TCP_Server extends Thread {
 		int fileN;
@@ -868,10 +868,10 @@ class DHT extends Thread{
 	} //end of TCP_Server
 	
 	/*********************************************************************************
-	 * 																				 *
-	 *  								TCP CLIENT									 *
-	 *  																			 *
-	 *  																			 *
+	 * 										*
+	 *  								TCP CLIENT	*
+	 *  										*
+	 *  										*
 	 *********************************************************************************/
 	class TCP_Client extends Thread {
 		int fileN;
