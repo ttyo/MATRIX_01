@@ -2,7 +2,11 @@
 
 # Run from webserver.sh to handle a single http request
 # written by andrewt@cse.unsw.edu.au as a COMP2041 example
-
+# 
+# Author
+# Chengjia Xu, CSE of UNSW
+# ID: 5025306
+#
 read http_request || exit 1
 
 status_line="HTTP/1.0 200 OK"
