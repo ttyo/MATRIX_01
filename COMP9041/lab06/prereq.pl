@@ -28,8 +28,6 @@ sub prereq {
         while (my $line = <F1>) {
                 if ($line =~ /.*Prerequisite.*/) {
                         $line =~ s/\<\/p\>\<p\>\<strong\>Excluded\:.+\<\/a\>\<\/p\>$//g;
-                        #$line =~ /[A-Z]{4}[0-9]{4}/gi;
-                        #@pre_list = $line; QUESTION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                         @pre_list1 = $line =~ /[A-Z]{4}[0-9]{4}/gi;
 
 			foreach $pre_course (@pre_list1) {
