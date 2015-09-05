@@ -1,13 +1,9 @@
 #!/usr/bin/perl -w
-# 
-# Author
-# Chengjia Xu, CSE of UNSW
-# ID: 5025306
-#
 
 @pod = ();
 @counter = ();
 @whale = ();
+@result_list = ();
 
 while (my $line = <STDIN>) {
 	chomp($line);
@@ -27,26 +23,25 @@ while (my $line = <STDIN>) {
 	}
 
 	$list_size = @whale;
-	$flag = 0;
-	$i = 0;
+	$notnew = 0;
 	if ($list_size == 0) {
                 push @pod, "1";
                 push @counter, $number;
                 push @whale, $key;
-		$flag = 1;
+		$notnew = 1;
 	}
 	else {
 		for ($i = 0; $i < $list_size; $i ++) {
 			if ($whale[$i] eq $key) {
 				$pod[$i] ++;
 				$counter[$i] += $number;
-				$flag = 1;
+				$notnew = 1;
 				last;
 			}
 		}
 	}
 	
-	if ($flag == 0) {
+	if ($notnew == 0) {
 		push @pod, "1";
 		push @counter, $number;
 		push @whale, $key;
@@ -54,5 +49,11 @@ while (my $line = <STDIN>) {
 }
 
 for ($i = 0; $i < @whale; $i ++) {
-	print "$whale[$i] observations: $pod[$i] pods, $counter[$i] individuals\n"
+	$result = "$whale[$i] observations: $pod[$i] pods, $counter[$i] individuals\n";
+	push @result_list, $result;
+}
+
+@sorted_result = sort @result_list;
+for ($i = 0; $i < @whale; $i ++) {
+	print $sorted_result[$i];
 }
