@@ -6,16 +6,15 @@
 # Author: Chengjia Xu, 5025306, CSE of UNSW
 # Oct - Nov, 2015
 
-import sys # this is a test
+import sys
 import re
-import socket
 import time
-import threading
+import socket
 import itertools
 import ctypes
-import struct
 import curses
 import curses.ascii
+import threading
 from string import printable
 
 # From: http://stackoverflow.com/a/1695250/1800854
@@ -47,7 +46,7 @@ def init():
     BUFFER = 1024
     HELLO_LOST = 4
 
-    global HOST, HOST_ADDRESS, TOTAL_NODES, SERVER, GATEWAY
+    global TOTAL_NODES, SERVER, GATEWAY
     global DHList, ROUTETable, DESTList
 
     DHList = [] # neighbour list
@@ -67,15 +66,15 @@ def init():
 # show destination
 # show neighbour status
 def main(screen):
-    global history, window_size
+    global history, window_size, HOST, HOST_ADDRESS
     history = []
     Y, X = screen.getmaxyx()
     window_size = Y - 3
+    height = Y - 1
 
     screen.clear()
     curses.use_default_colors()
     curses.start_color()
-
     curses.init_pair(STATUS.NORMAL, curses.COLOR_BLUE, curses.COLOR_WHITE)
     curses.init_pair(STATUS.WARNING, curses.COLOR_RED, curses.COLOR_WHITE)
     curses.init_pair(STATUS.COMMAND, curses.COLOR_CYAN, -1)
@@ -84,57 +83,70 @@ def main(screen):
     curses.init_pair(STATUS.ERROR, curses.COLOR_YELLOW, curses.COLOR_WHITE)
     print_screen(screen, CONTROL.NORMAL, "Please input data under the following scheme to initiate the protocol:")
     print_screen(screen, CONTROL.NORMAL, "1. Input the total number of nodes in the network. (e.g.: network 6)")
-    print_screen(screen, CONTROL.NORMAL, "2. Input the local identifier, followed by DH identifiers. (e.g.: node 5 4 6)")
+    print_screen(screen, CONTROL.NORMAL, "2. Input the local identifier, followed by Direct Hop (DH) identifiers. (e.g.: node 5 4 6)")
     print_screen(screen, CONTROL.NORMAL, "3. Designate server node (on the expecting server node itself, e.g.: server)")
+    print_screen(screen, CONTROL.NORMAL, "4. Input \"done\" to skip designating server")
 
     network_configured = 0
     node_configured = 0
+    display_type = 0
+    done = 0
     while True:
-        screen.move((Y - 1), 0)
-        screen.clrtoeol()
-        screen.addstr((Y - 1), 0, "[Command Line Interface] >> ")
-        command = input(screen)
+        command = input(screen, height, display_type)
 
-        if (network_configured and node_configured):
+        if (network_configured and node_configured and done):
+            display_type = 1
             break
-        elif (command.startswith("node") or command.startswith("network") or command.startswith("server")):
+        elif (command.startswith("node") or command.startswith("network") or command.startswith("server") or command.startswith("done")):
             if (command.startswith("network")): # record the total number of nodes
                 parameter = 0
                 try:
                     parameter = int(command.split()[1])
+                    print_screen(screen, CONTROL.NORMAL, "Command input: \'" + command + "\'")
+                    TOTAL_NODES = parameter
+                    network_configured = 1
                 except:
-                    print_screen (screen, CONTROL.STATUS, "Invalid parameters: " + command)
+                    print_screen(screen, CONTROL.ERROR, "Invalid parameters: \'" + command + "\'")
                     continue
-
-                TOTAL_NODES = parameter
-                network_configured = 1
 
             elif (command.startswith("node")): # record the information of DHs
                 parameter = []
                 try:
                     parameter = command.split()
+                    HOST = int(parameter[1])
+                    HOST_ADDRESS = socket.gethostname()
+                    # HOST_ADDRESS = address_generator(str(HOST)
+                    for num in parameter[2:]:
+                        DH = int(num)
+                        DHList.append([DH, 0, 0]) # DHList: [A, B, C], A is DH identifier, B is received sequence number, C is successive lost number
+                        ROUTETable.append([HOST, DH])
+                        DESTList.append([DH, 1])
+                    print_screen(screen, CONTROL.NORMAL, "Command input: \'" + command + "\'")
+                    node_configured = 1
                 except:
-                    print_screen (screen, CONTROL.STATUS, "Invalid parameters: " + command)
+                    print_screen(screen, CONTROL.ERROR, "Invalid parameters: \'" + command + "\'")
                     continue
 
-                HOST = int(parameter[1])
-                HOST_ADDRESS = socket.gethostname()
-                # HOST_ADDRESS = address_generator(str(HOST)
-                for num in parameter[2:]:
-                    DH = int(num)
-                    DHList.append([DH, 0, 0]) # DHList: [A, B, C], A is DH identifier, B is received sequence number, C is successive lost number
-                    ROUTETable.append([HOST, DH])
-                    DESTList.append([DH, 1])
-                node_configured = 1
-
-            elif (command.startswith("server")): # local node is the server
+            elif (command.startswith("server") and node_configured == 1): # local node is the server
                 SERVER = int(HOST)
+                done = 1
+
+            elif (command.startswith("server") and node_configured == 0):
+                print_screen (screen, CONTROL.ERROR, "Node must be configured firstly before being designated as a server.")
+
+            elif (command.startswith("done")):
+                done = 1
+                print_screen(screen, CONTROL.NORMAL, "Command input: \'" + command + "\'")
 
         else:
-            print_screen (screen, CONTROL.ERROR, "An unknown command: " + command + ".")
+            print_screen (screen, CONTROL.ERROR, "Command unknown: \'" + command + "\'")
+
+        roll_up_screen(screen)
+        screen.refresh()
+        # end of while
 
     # start threads now
-    tHandleUdpAll = threading.Thread(target = handle_udp_all, args = (screen))
+    tHandleUdpAll = threading.Thread(target = handle_udp_all, args = (screen)) # a bug in here, _curses.urses has no window
     tHandleUdpAll.start()
     tHandleSensorEvent = threading.Thread(target = handle_sensor_event, args = (screen))
     tHandleSensorEvent.start()
@@ -153,10 +165,7 @@ def main(screen):
 
     # user can input command now
     while True:
-        screen.move((Y - 1), 0)
-        screen.clrtoeol()
-        screen.addstr((Y - 1), 0, "[Command Line Interface] node [" + str(HOST) + "] >> ")
-        command = input(screen)
+        command = input(screen, height, display_type)
 
         # Quit command
         if (command == "quit"):
@@ -181,7 +190,7 @@ def main(screen):
             try:
                 parameter = command.split()[1]
             except:
-                print_screen (screen, CONTROL.STATUS, "Invalid parameters: " + command)
+                print_screen (screen, CONTROL.ERROR, "Invalid parameters: \'" + command + "\'")
                 continue
 
             if (parameter is "routingtable"):
@@ -189,22 +198,26 @@ def main(screen):
                 for r_list in ROUTETable:
                     print ('[%s]' % ', '.join(map(str, r_list)))
                 print ("")
+                print_screen(screen, CONTROL.NORMAL, "Command input: \'" + command + "\'")
 
             elif (parameter is "neighbour"):
                 for DH in DHList:
                     print ("DH identifier: " + str(DH[0]))
                 print ("")
+                print_screen(screen, CONTROL.NORMAL, "Command input: \'" + command + "\'")
 
             elif (parameter is "destination"):
                 for Dest in DESTList:
                     print ("Known Destination: " + str(Dest[0]))
                 print ("")
+                print_screen(screen, CONTROL.NORMAL, "Command input: \'" + command + "\'")
 
             elif (parameter is "metric"):
                 print ("Destination   Metric")
                 for Dest in DESTList:
                     print (str(Dest[0]) + '        ' + str(Dest[1]))
                 print ("")
+                print_screen(screen, CONTROL.NORMAL, "Command input: \'" + command + "\'")
 
             # elif (parameter is "neighbourstatus"):
             elif (parameter is "server"):
@@ -213,15 +226,17 @@ def main(screen):
                 else:
                     print ("Designated node is: " + str(SERVER))
                 print ("")
+                print_screen(screen, CONTROL.NORMAL, "Command input: \'" + command + "\'")
 
             else:
-                print_screen (screen, CONTROL.STATUS, "An unknown command: " + command + ".")
+                print_screen (screen, CONTROL.ERROR, "Command unknown: \'" + command + "\'")
 
         else:
-            print_screen (screen, CONTROL.STATUS, "An unknown command: " + command + ".")
+            print_screen (screen, CONTROL.ERROR, "Command unknown: \'" + command + "\'")
 
         roll_up_screen(screen)
         screen.refresh()
+        # end of while
 
 
 def terminate(thread):
@@ -234,33 +249,38 @@ def terminate(thread):
         raise SystemError("PyThreadState_SetAsyncExc failed")
 
 
-# From: http://stackoverflow.com/a/30259422/1800854
-def input(screen):
+def input(screen, height, type):
+    screen.move(height, 0)
+    screen.clrtoeol()
+    if (type == 0):
+        screen.addstr("[Command Line Interface] >> ")
+    elif (type == 1):
+        screen.addstr(height, 0, "[Command Line Interface] node [" + str(HOST) + "] >> ")
+
     ERASE = input.ERASE = getattr(input, "erasechar", ord(curses.erasechar()))
     Y, X = screen.getyx()
     s = []
-
     while True:
         c = screen.getch()
 
-        if c in (curses.ascii.LF, curses.ascii.CR, curses.KEY_ENTER): #accept KEY_ENTER, LF or CR for compatibility
+        if c in (curses.ascii.LF, curses.ascii.CR, curses.KEY_ENTER): # accept KEY_ENTER, LF or CR for compatibility
             break
-        elif c == ERASE or c == curses.KEY_BACKSPACE: #Both erase and KEY_BACKSPACE used for compatibility
+        elif c == ERASE or c == curses.KEY_BACKSPACE: # both erase and KEY_BACKSPACE used for compatibility
             y, x = screen.getyx()
             if x > X:
                 del s[-1]
                 screen.move(y, (x - 1))
                 screen.clrtoeol()
                 screen.refresh()
-            elif c in PRINTABLE:
-                s.append(chr(c))
-                screen.addch(c)
-            else:
-                pass
+        elif c in PRINTABLE:
+            s.append(chr(c))
+            screen.addch(c)
+        else:
+            pass
     return "".join(s)
 
 
-def print_screen (screen, control, message):
+def print_screen(screen, control, message):
     global history
     height = len(history)
     Y, X = screen.getyx() # save current position
@@ -272,7 +292,7 @@ def print_screen (screen, control, message):
     screen.refresh()
 
 
-def print_single_line (screen, height, control, message):
+def print_single_line(screen, height, control, message):
     if (control == CONTROL.WARNING): # display the status message with colors
         screen.addstr(height, 0, "[WARNING]", curses.color_pair(STATUS.WARNING))
     elif (control == CONTROL.UPDATE):
