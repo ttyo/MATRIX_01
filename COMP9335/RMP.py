@@ -1,4 +1,11 @@
 
+# RIP-like Multi-hop Protocol (RMP)
+# RMP is a light-weight dynamic protocol for sensor network, used in the
+# project: Time Synchronisation for Activity Monitoring from course COMP(49)335
+# Developed on: Python 2.7.10
+# Author: Chengjia Xu, 5025306, CSE of UNSW
+# Oct - Nov, 2015
+
 import sys # this is a test
 import re
 import socket
