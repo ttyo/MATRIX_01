@@ -1,2 +1,2 @@
-# COMP9335 Wireless Mesh & Sensor Network
+# COMP(49)335 Wireless Mesh & Sensor Network
 Project: Time Synchronisation for Activity Monitoring
