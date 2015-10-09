@@ -1,10 +1,16 @@
-
+#
 # RIP-like Multi-hop Protocol (RMP)
-# RMP is a light-weight dynamic routing protocol for sensor network, used in the
+# RMP is a light-weight dynamic routing protocol for sensor network, used in the research
 # project: Time Synchronisation for Activity Monitoring from course COMP(49)335
+# Each node in the protocol will finally has a topology of the whole network while
+# in the convergence status. The metric in RMP is based on hop number, with server
+# (called designated node) flooding mechanism, triggered update, and a periodical hello
+# behaviour between neighbours acting as heart-beat detection for keep-alive
+#
 # Developed on: Python 2.7.10
 # Author: Chengjia Xu, 5025306, CSE of UNSW
 # Oct - Nov, 2015
+#
 
 import sys
 import re
@@ -21,9 +27,9 @@ from string import printable
 def enum(**enums):
     return type('Enum', (), enums)
 
-STATUS = enum(NORMAL = 1, WARNING = 2, COMMAND = 3, RED = 4, GREEN = 5, ERROR = 6)
+STATUS = enum(NORMAL = 1, WARNING = 2, COMMAND = 3, RED = 4, GREEN = 5, ERROR = 6, YELLOW = 7, BLUE = 8, RESULT = 9)
 PEER_STATUS = enum(OK = 1, INVALID = 2, DEAD = 3)
-CONTROL = enum(NORMAL = 1, WARNING = 2, UPDATE = 3, HELLO = 4, ERROR = 5)
+CONTROL = enum(NORMAL = 1, WARNING = 2, UPDATE = 3, HELLO = 4, ERROR = 5, RESULT = 6)
 MESSAGE_TYPE = enum(UPDATE = 1, HELLO = 2, ACK = 3, DATA = 4, DATAACK = 5, SERVER = 6)
 PRINTABLE = map(ord, printable)
 
@@ -46,16 +52,6 @@ def init():
     BUFFER = 1024
     HELLO_LOST = 4
 
-    global TOTAL_NODES, SERVER, GATEWAY
-    global DHList, ROUTETable, DESTList
-
-    DHList = [] # neighbour list
-    ROUTETable = [] # routing table, contains routing list
-    DESTList = [] # destination list
-    TOTAL_NODES = 0
-    SERVER = 0
-    GATEWAY = "10.11.11.1"
-
     # The main function will runs in a new screen which can support customised commands
     curses.wrapper(main)
 
@@ -67,6 +63,15 @@ def init():
 # show neighbour status
 def main(screen):
     global history, window_size, HOST, HOST_ADDRESS
+    global DHList, ROUTETable, DESTList
+    global TOTAL_NODES, SERVER, GATEWAY
+
+    TOTAL_NODES = 0
+    SERVER = 0
+    GATEWAY = "10.11.11.100"
+    DHList = [] # neighbour list
+    ROUTETable = [] # routing table, contains routing list
+    DESTList = [] # destination list
     history = []
     Y, X = screen.getmaxyx()
     window_size = Y - 3
@@ -80,7 +85,10 @@ def main(screen):
     curses.init_pair(STATUS.COMMAND, curses.COLOR_CYAN, -1)
     curses.init_pair(STATUS.RED, curses.COLOR_RED, -1)
     curses.init_pair(STATUS.GREEN, curses.COLOR_GREEN, -1)
+    curses.init_pair(STATUS.BLUE, curses.COLOR_BLUE, -1)
     curses.init_pair(STATUS.ERROR, curses.COLOR_YELLOW, curses.COLOR_WHITE)
+    curses.init_pair(STATUS.RESULT, curses.COLOR_GREEN, curses.COLOR_WHITE)
+    curses.init_pair(STATUS.YELLOW, curses.COLOR_YELLOW, -1)
     print_screen(screen, CONTROL.NORMAL, "Please input data under the following scheme to initiate the protocol:")
     print_screen(screen, CONTROL.NORMAL, "1. Input the total number of nodes in the network. (e.g.: network 6)")
     print_screen(screen, CONTROL.NORMAL, "2. Input the local identifier, followed by Direct Hop (DH) identifiers. (e.g.: node 5 4 6)")
@@ -99,32 +107,29 @@ def main(screen):
             break
         elif (command.startswith("node") or command.startswith("network") or command.startswith("server") or command.startswith("done")):
             if (command.startswith("network")): # record the total number of nodes
-                parameter = 0
                 try:
                     parameter = int(command.split()[1])
-                    print_screen(screen, CONTROL.NORMAL, "Command input: \'" + command + "\'")
+                    print_screen(screen, CONTROL.NORMAL, "Command: " + "C" + str(STATUS.COMMAND) + "[" + command + "]")
                     TOTAL_NODES = parameter
                     network_configured = 1
                 except:
-                    print_screen(screen, CONTROL.ERROR, "Invalid parameters: \'" + command + "\'")
+                    print_screen(screen, CONTROL.ERROR, "Invalid parameter(s): " + "C" + str(STATUS.YELLOW) + "[" + command + "]")
                     continue
 
             elif (command.startswith("node")): # record the information of DHs
-                parameter = []
                 try:
                     parameter = command.split()
                     HOST = int(parameter[1])
-                    HOST_ADDRESS = socket.gethostname()
-                    # HOST_ADDRESS = address_generator(str(HOST)
+                    HOST_ADDRESS = socket.gethostbyname(socket.gethostname())
                     for num in parameter[2:]:
                         DH = int(num)
                         DHList.append([DH, 0, 0]) # DHList: [A, B, C], A is DH identifier, B is received sequence number, C is successive lost number
                         ROUTETable.append([HOST, DH])
                         DESTList.append([DH, 1])
-                    print_screen(screen, CONTROL.NORMAL, "Command input: \'" + command + "\'")
+                    print_screen(screen, CONTROL.NORMAL, "Command: " + "C" + str(STATUS.COMMAND) + "[" + command + "]")
                     node_configured = 1
                 except:
-                    print_screen(screen, CONTROL.ERROR, "Invalid parameters: \'" + command + "\'")
+                    print_screen(screen, CONTROL.ERROR, "Invalid parameter(s): " + "C" + str(STATUS.YELLOW) + "[" + command + "]")
                     continue
 
             elif (command.startswith("server") and node_configured == 1): # local node is the server
@@ -136,32 +141,29 @@ def main(screen):
 
             elif (command.startswith("done")):
                 done = 1
-                print_screen(screen, CONTROL.NORMAL, "Command input: \'" + command + "\'")
+                print_screen(screen, CONTROL.NORMAL, "Command: " + "C" + str(STATUS.COMMAND) + "[" + command + "]")
 
+        elif (command == ''):
+            print_screen(screen, CONTROL.NORMAL, "")
         else:
-            print_screen (screen, CONTROL.ERROR, "Command unknown: \'" + command + "\'")
+            print_screen (screen, CONTROL.ERROR, "Command unknown: " + "C" + str(STATUS.YELLOW) + "[" + command + "]")
 
         roll_up_screen(screen)
         screen.refresh()
         # end of while
 
-    # start threads now
-    tHandleUdpAll = threading.Thread(target = handle_udp_all, args = (screen)) # a bug in here, _curses.urses has no window
-    tHandleUdpAll.start()
-    tHandleSensorEvent = threading.Thread(target = handle_sensor_event, args = (screen))
-    tHandleSensorEvent.start()
+    print_screen(screen, CONTROL.NORMAL, "Protocol initialising ...")
+    print_screen(screen, CONTROL.NORMAL, "Local identifier: " + "C" + str(STATUS.BLUE) + "[" + str(HOST) + "]")
+    print_screen(screen, CONTROL.NORMAL, "Local address: " + "C" + str(STATUS.BLUE) + "[" + HOST_ADDRESS + "]")
+    print_screen(screen, CONTROL.NORMAL, "Tips:")
+    print_screen(screen, CONTROL.NORMAL, "[C" + str(STATUS.COMMAND) + "[show routingtable]] will display the current routing table.")
+    print_screen(screen, CONTROL.NORMAL, "[C" + str(STATUS.COMMAND) + "[show neighbour]] will display the current neighbour list.")
+    print_screen(screen, CONTROL.NORMAL, "[C" + str(STATUS.COMMAND) + "[show destination]] will display the current known destinations.")
+    print_screen(screen, CONTROL.NORMAL, "[C" + str(STATUS.COMMAND) + "[show metric]] will display the metric of every destination")
+    print_screen(screen, CONTROL.NORMAL, "[C" + str(STATUS.COMMAND) + "[show server]] will display the current server node")
+    print_screen(screen, CONTROL.NORMAL, "[C" + str(STATUS.COMMAND) + "[quit]] will terminate the program.")
 
-    print_screen(screen, CONTROL.NORMAL, "Protocol starting, local identifier: " + get_color_key(STATUS.GREEN, str(HOST)))
-    print_screen(screen, CONTROL.NORMAL, "Local address: " + get_color_key(STATUS.GREEN, str(HOST_ADDRESS)))
-    print_screen(screen, CONTROL.NORMAL, "Tip:")
-    print_screen(screen, CONTROL.NORMAL, "\"" + get_color_key(STATUS.COMMAND, "show routingtable") + "\" will display the current routing table.")
-    print_screen(screen, CONTROL.NORMAL, "\"" + get_color_key(STATUS.COMMAND, "show neighbour") + "\" will display the current neighbour list.")
-    print_screen(screen, CONTROL.NORMAL, "\"" + get_color_key(STATUS.COMMAND, "show destination") + "\" will display the current known destinations.")
-    # print_screen(screen, CONTROL.NORMAL, "\"" + get_color_key(STATUS.COMMAND, "show neighbourstatus") + "\" will display the current neighbour status")
-    print_screen(screen, CONTROL.NORMAL, "\"" + get_color_key(STATUS.COMMAND, "show metric") + "\" will display the metric of every destination")
-    print_screen(screen, CONTROL.NORMAL, "\"" + get_color_key(STATUS.COMMAND, "show server") + "\" will display the current server node")
-    # print_screen(screen, CONTROL.NORMAL, "\"" + get_color_key(STATUS.COMMAND, "clear server") + "\" will remove the current server node")
-    print_screen(screen, CONTROL.NORMAL, "\"" + get_color_key(STATUS.COMMAND, "quit") + "\" will terminate the program.")
+
 
     # user can input command now
     while True:
@@ -174,7 +176,7 @@ def main(screen):
             if (tHandleUdpAll.isAlive()):
                 terminate(tHandleUdpAll)
 
-            print_screen(screen, CONTROL.STATUS, "Local node is leaving network now.")
+            print_screen(screen, CONTROL.NORMAL, "Local node is leaving network now.")
             screen.refresh()
             time.sleep(SUSPEND)
             break
@@ -186,57 +188,63 @@ def main(screen):
         # show neighbourstatus
         # show server
         elif (command.startswith("show")):
-            parameter = ""
             try:
                 parameter = command.split()[1]
+                print_screen(screen, CONTROL.NORMAL, "Command: " + "C" + str(STATUS.COMMAND) + "[" + command + "]")
+                if (parameter == "routingtable"):
+                    print_screen(screen, CONTROL.RESULT, "C" + str(STATUS.GREEN) + "[Current routing table:]")
+                    for r_list in ROUTETable:
+                        result = '# %s #' % ' - '.join(map(str, r_list))
+                        print_screen(screen, CONTROL.RESULT, "C" + str(STATUS.GREEN) + "[" + result + "]")
+
+                elif (parameter == "neighbour"):
+                    for DH in DHList:
+                        result = "DH identifier: " + str(DH[0])
+                        print_screen(screen, CONTROL.RESULT, "C" + str(STATUS.GREEN) + "[" + result + "]")
+
+                elif (parameter == "destination"):
+                    print_screen(screen, CONTROL.RESULT, "C" + str(STATUS.GREEN) + "[Known destination(s):]")
+                    for Dest in DESTList:
+                        result = "# " + str(Dest[0])
+                        print_screen(screen, CONTROL.RESULT, "C" + str(STATUS.GREEN) + "[" + result + "]")
+
+                elif (parameter == "metric"):
+                    print_screen(screen, CONTROL.RESULT, "C" + str(STATUS.GREEN) + "[Destination  Metric]")
+                    for Dest in DESTList:
+                        result = '     ' + str(Dest[0]) + '          ' + str(Dest[1])
+                        print_screen(screen, CONTROL.RESULT, "C" + str(STATUS.GREEN) + "[" + result + "]")
+
+                # elif (parameter is "neighbourstatus"):
+                elif (parameter == "server"):
+                    if (not SERVER):
+                        print_screen(screen, CONTROL.RESULT, "C" + str(STATUS.GREEN) + "[No designated node]")
+                    elif (SERVER == HOST):
+                        result = "Designated node is local node: " + str(SERVER)
+                        print_screen(screen, CONTROL.RESULT, "C" + str(STATUS.GREEN) + "[" + result + "]")
+                    else:
+                        result = "Designated node is: node " + str(SERVER)
+                        print_screen(screen, CONTROL.RESULT, "C" + str(STATUS.GREEN) + "[" + result + "]")
+
+                else:
+                    print_screen (screen, CONTROL.ERROR, "Unknown \"show\" parameter(s): " + "C" + str(STATUS.YELLOW) + "[" + parameter + "]")
+
             except:
-                print_screen (screen, CONTROL.ERROR, "Invalid parameters: \'" + command + "\'")
+                print_screen (screen, CONTROL.ERROR, "Invalid parameter(s): " + "C" + str(STATUS.YELLOW) + "[" + command + "]")
                 continue
 
-            if (parameter is "routingtable"):
-                print("Current routing table is:")
-                for r_list in ROUTETable:
-                    print ('[%s]' % ', '.join(map(str, r_list)))
-                print ("")
-                print_screen(screen, CONTROL.NORMAL, "Command input: \'" + command + "\'")
-
-            elif (parameter is "neighbour"):
-                for DH in DHList:
-                    print ("DH identifier: " + str(DH[0]))
-                print ("")
-                print_screen(screen, CONTROL.NORMAL, "Command input: \'" + command + "\'")
-
-            elif (parameter is "destination"):
-                for Dest in DESTList:
-                    print ("Known Destination: " + str(Dest[0]))
-                print ("")
-                print_screen(screen, CONTROL.NORMAL, "Command input: \'" + command + "\'")
-
-            elif (parameter is "metric"):
-                print ("Destination   Metric")
-                for Dest in DESTList:
-                    print (str(Dest[0]) + '        ' + str(Dest[1]))
-                print ("")
-                print_screen(screen, CONTROL.NORMAL, "Command input: \'" + command + "\'")
-
-            # elif (parameter is "neighbourstatus"):
-            elif (parameter is "server"):
-                if (not SERVER):
-                    print ("No designated node")
-                else:
-                    print ("Designated node is: " + str(SERVER))
-                print ("")
-                print_screen(screen, CONTROL.NORMAL, "Command input: \'" + command + "\'")
-
-            else:
-                print_screen (screen, CONTROL.ERROR, "Command unknown: \'" + command + "\'")
-
+        elif (command == ''):
+            print_screen(screen, CONTROL.NORMAL, "")
         else:
-            print_screen (screen, CONTROL.ERROR, "Command unknown: \'" + command + "\'")
+            print_screen (screen, CONTROL.ERROR, "Command unknown: " + "C" + str(STATUS.YELLOW) + "[" + command + "]")
 
         roll_up_screen(screen)
         screen.refresh()
         # end of while
+    # start threads now
+    tHandleUdpAll = threading.Thread(target = handle_udp_all, args = (screen)) # a bug in here, _curses.urses has no window
+    tHandleUdpAll.start()
+    tHandleSensorEvent = threading.Thread(target = handle_sensor_event, args = (screen))
+    tHandleSensorEvent.start()
 
 
 def terminate(thread):
@@ -255,7 +263,7 @@ def input(screen, height, type):
     if (type == 0):
         screen.addstr("[Command Line Interface] >> ")
     elif (type == 1):
-        screen.addstr(height, 0, "[Command Line Interface] node [" + str(HOST) + "] >> ")
+        screen.addstr(height, 0, "[Command Line Interface][node " + str(HOST) + "]$ ")
 
     ERASE = input.ERASE = getattr(input, "erasechar", ord(curses.erasechar()))
     Y, X = screen.getyx()
@@ -286,8 +294,8 @@ def print_screen(screen, control, message):
     Y, X = screen.getyx() # save current position
     print_single_line(screen, height, control, message)
     history.append([control, message])
-    roll_up_screen(screen)
 
+    roll_up_screen(screen)
     screen.move(Y, X) # restore the position
     screen.refresh()
 
@@ -303,24 +311,24 @@ def print_single_line(screen, height, control, message):
         screen.addstr(height, 0, "[NORMAL]", curses.color_pair(STATUS.NORMAL))
     elif (control == CONTROL.ERROR):
         screen.addstr(height, 0, "[ERROR]", curses.color_pair(STATUS.ERROR))
+    elif (control == CONTROL.RESULT):
+        screen.addstr(height, 0, "[RESULT]", curses.color_pair(STATUS.RESULT))
 
-    # split the message using regex
-    message = re.split("(colour\d\[.*?\])", message)
-    offset = 10 # first column offset
+    # store the message into a list
+    message = re.split("(C\d\[.*?\])", message)
+    offset = 10
     for line in message:
 
-        # get color key
-        color_match = re.match("colour(\d{1})\[(.*)\]", line)
+        color_match = re.match("C(\d{1})\[(.*)\]", line)
         color_key = 0
 
         if color_match:
-            color_key = int((color_match.groups()[0]))
-            str = color_match.groups()[1]
+            color_key = int((color_match.groups()[0])) # get color key
+            str = color_match.groups()[1] # get the original string
         else:
-            str = line
+            str = line # if not match, which means it is a normal string without color
 
         Y, X = screen.getmaxyx()
-
         if offset + len(str) >= X: # has to wrap
             wrap_index = X - offset
             wrap_string = (str)[:wrap_index]
@@ -330,17 +338,12 @@ def print_single_line(screen, height, control, message):
                 screen.addstr(height, offset, wrap_string)
             break
 
-        # Print contents as colour component or normally
-        if color_match:
+        if color_match: # print contents and colour
             screen.addstr(height, offset, str, curses.color_pair(color_key))
         else:
             screen.addstr(height, offset, str)
 
         offset += len(str)
-
-
-def get_color_key(colour, text):
-    return "colour" + str(colour) + "[" + text + "]"
 
 
 # this function will roll up the screen if the screen has been fully occupied
@@ -407,7 +410,7 @@ def handle_udp_all(screen):
 
             # if a DH is lost, then delete every information from database, and CONVERGENCE status becomes false
             if (DH[2] >= SUCCESSIVE_LOST):
-                print_screen(screen, CONTROL.WARNING, "DH node: " + get_color_key(STATUS.RED, str(DH[0])) + " is lost.")
+                print_screen(screen, CONTROL.WARNING, "DH node: " + "C" + str(STATUS.RED) + "[" + str(DH[0]) + "]" + " is lost")
                 tBlinkRed = threading.Thread(target = blink_red)
                 tBlinkRed.start()
 
@@ -455,7 +458,7 @@ def handle_udp_all(screen):
                         send_server_info(dh_address)
 
             if (msgType == MESSAGE_TYPE.UPDATE): # Update message
-                print_screen(screen, CONTROL.UPDATE, "An table update received from node: " + get_color_key(STATUS.GREEN, str(sourceNode)) + ".")
+                print_screen(screen, CONTROL.UPDATE, "An table update received from node: " + "C" + str(STATUS.GREEN) + "[" + str(sourceNode) + "]")
                 received_table = []
                 temp_list = []
                 for identifier in data[1:]:
@@ -470,8 +473,8 @@ def handle_udp_all(screen):
                 handle_route_update(received_table)
 
             if (msgType == MESSAGE_TYPE.HELLO):  # HELLO message, get sequence number from HELLO then send ACK with the sequence number back
-                print_screen(screen, CONTROL.PINGREQ,
-                             "A hello message received from node: " + get_color_key(STATUS.blue, str(sourceNode)) + ".")
+                print_screen(screen, CONTROL.UPDATE,
+                             "A hello message received from node: " + "C" + str(STATUS.BLUE) + "[" + str(sourceNode) + "]")
                 seqNum = int(data[2])
                 dh_address = address_generator(sourceNode)
                 reply_ack(dh_address, seqNum)
@@ -484,7 +487,7 @@ def handle_udp_all(screen):
                         break
 
             if (msgType == MESSAGE_TYPE.DATAACK):  # DataACK from remote node, in here the LED will blink to it
-                print_screen(screen, CONTROL.PINGREQ, "A triggered message received from node: " + get_color_key(STATUS.blue, str(sourceNode)) + ".")
+                print_screen(screen, CONTROL.UPDATE, "A triggered message received from node: " + "C" + str(STATUS.GREEN) + "[" + str(sourceNode) + "]")
                 dh_address = address_generator(sourceNode)
                 reply_data_ack(dh_address)
                 tBlinkBlue = threading.Thread(target=blink_blue)
