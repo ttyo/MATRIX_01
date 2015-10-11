@@ -67,7 +67,7 @@ def init():
 def main(screen):
     global history, window_size, HOST, HOST_ADDRESS
     global DHList, ROUTETable, DESTList
-    global TOTAL_NODES, SERVER, GATEWAY
+    global TOTAL_NODES, SERVER, GATEWAY, SERVER_CONVERGENCE
 
     TOTAL_NODES = 0
     SERVER = 0
@@ -103,7 +103,7 @@ def main(screen):
     display_type = 0
     done = 0
     while True:
-        command = input(screen, height, display_type)
+        command = stdin_to_command(screen, height, display_type)
 
         if (network_configured and node_configured and done):
             display_type = 1
@@ -157,7 +157,16 @@ def main(screen):
         # end of while
 
     print_screen(screen, CONTROL.NORMAL, "")
-    print_screen(screen, CONTROL.NORMAL, "Protocol initialising ...")
+    print_screen(screen, CONTROL.NORMAL, "Protocol initialising ... (RMP pre-alpha, version 0.5.2)")
+
+    # start threads now
+    tHandleUdpAll = threading.Thread(target = handle_udp_all, args = (screen, 1))  # a bug in here, _curses.urses has no window
+    tHandleUdpAll.start()
+    print_screen(screen, CONTROL.NORMAL, "Communication module started")
+    tHandleSensorEvent = threading.Thread(target = handle_sensor_event, args = (screen, 1))
+    tHandleSensorEvent.start()
+    print_screen(screen, CONTROL.NORMAL, "Sensor module started")
+
     print_screen(screen, CONTROL.NORMAL, "Local identifier: " + "#" + str(STATUS.BLUE) + "[" + str(HOST) + "]")
     print_screen(screen, CONTROL.NORMAL, "Local address: " + "#" + str(STATUS.BLUE) + "[" + HOST_ADDRESS + "]")
     print_screen(screen, CONTROL.NORMAL, "")
@@ -165,22 +174,16 @@ def main(screen):
     print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[show routingtable]] will display the current routing table.")
     print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[show neighbour]] will display the current neighbour list.")
     print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[show destination]] will display the current known destinations.")
-    print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[show metric]] will display the metric of every destination")
-    print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[show server]] will display the current server node")
-    print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[server]] will designate a new server node")
+    print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[show metric]] will display the metric of every destination.")
+    print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[show server]] will display the current server node.")
+    print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[server]] will designate a new server node.")
     print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[quit]] will terminate the program.")
+    print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[help]] will re-display tips above.")
 
-    # start threads now
-    tHandleUdpAll = threading.Thread(target = handle_udp_all, args = (screen))  # a bug in here, _curses.urses has no window
-    tHandleUdpAll.start()
-    tHandleSensorEvent = threading.Thread(target = handle_sensor_event, args = (screen))
-    tHandleSensorEvent.start()
-    tStartPir = threading.Thread(target = start_pir, args = (screen))
-    tStartPir.start()
 
     # user can input command now
     while True:
-        command = input(screen, height, display_type)
+        command = stdin_to_command(screen, height, display_type)
 
         # Quit command
         if (command == "quit"):
@@ -191,7 +194,7 @@ def main(screen):
 
             print_screen(screen, CONTROL.NORMAL, "Local node is leaving network now.")
             screen.refresh()
-            time.sleep(SUSPEND)
+            time.sleep(2.0)
             break
 
         # functional commands
@@ -209,7 +212,7 @@ def main(screen):
                     else:
                         print_screen(screen, CONTROL.RESULT, "#" + str(STATUS.GREEN) + "[Current routing table:]")
                         for r_list in ROUTETable:
-                            result = '# %s  #' % ' - '.join(map(str, r_list))
+                            result = '# %s #' % ' - '.join(map(str, r_list))
                             print_screen(screen, CONTROL.RESULT, "#" + str(STATUS.GREEN) + "[" + result + "]")
 
                 elif (parameter == "neighbour"):
@@ -260,7 +263,18 @@ def main(screen):
             print_screen (screen, CONTROL.ERROR, "Local node is already designated as server.")
         elif (command == "server"):
             print_screen(screen, CONTROL.NORMAL, "Command: " + "#" + str(STATUS.COMMAND) + "[" + command + "]")
+            SERVER_CONVERGENCE = 0;
             SERVER = int(HOST)
+
+        elif (command == "help"):
+            print_screen(screen, CONTROL.NORMAL, "RMP pre-alpha, version 0.5.2")
+            print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[show routingtable]] will display the current routing table.")
+            print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[show neighbour]] will display the current neighbour list.")
+            print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[show destination]] will display the current known destinations.")
+            print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[show metric]] will display the metric of every destination.")
+            print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[show server]] will display the current server node.")
+            print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[server]] will designate a new server node.")
+            print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[quit]] will terminate the program.")
 
         elif (command == ''):
             print_screen(screen, CONTROL.NORMAL, "")
@@ -272,32 +286,21 @@ def main(screen):
         # end of while
 
 
-def terminate(thread):
-    exc = ctypes.py_object(SystemExit)
-    res = ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(thread.ident), exc)
-    if res == 0:
-        raise ValueError("nonexistent thread id")
-    elif res > 1:
-        ctypes.pythonapi.PyThreadState_SetAsyncExc(thread.ident, None)
-        raise SystemError("PyThreadState_SetAsyncExc failed")
-
-
 # This function will read the STDIN, and make it at the bottom
-def input(screen, height, type):
+def stdin_to_command(screen, height, type):
     screen.move(height, 0)
     screen.clrtoeol()
-    if (type == 0):
+    if (type == 0):  # provides two interface: before and after the protocol initialisation
         screen.addstr("[Command Line Interface] >> ")
     elif (type == 1):
         screen.addstr(height, 0, "[Command Line Interface][node " + str(HOST) + "]# ")
 
-    # From http://stackoverflow.com/a/30259422/1800854, James Mills, keep STDIN on a position
-    ERASE = input.ERASE = getattr(input, "erasechar", ord(curses.erasechar()))
+    # From http://stackoverflow.com/a/30259422/1800854, James Mills, keep STDIN on a fixed position
+    ERASE = stdin_to_command.ERASE = getattr(stdin_to_command, "erasechar", ord(curses.erasechar()))
     Y, X = screen.getyx()
     s = []
     while True:
         c = screen.getch()
-
         if c in (curses.ascii.LF, curses.ascii.CR, curses.KEY_ENTER):
             break
         elif c == ERASE or c == curses.KEY_BACKSPACE:
@@ -333,11 +336,11 @@ def print_single_line(screen, height, control, message):
     elif (control == CONTROL.UPDATE):
         screen.addstr(height, 0, "[UPDATE]", curses.color_pair(STATUS.NORMAL))
     elif (control == CONTROL.HELLO):
-        screen.addstr(height, 0, "[HELLO]", curses.color_pair(STATUS.NORMAL))
+        screen.addstr(height, 0, "[HELLO] ", curses.color_pair(STATUS.NORMAL))
     elif (control == CONTROL.NORMAL):
         screen.addstr(height, 0, "[NORMAL]", curses.color_pair(STATUS.NORMAL))
     elif (control == CONTROL.ERROR):
-        screen.addstr(height, 0, "[ERROR]", curses.color_pair(STATUS.ERROR))
+        screen.addstr(height, 0, "[ERROR] ", curses.color_pair(STATUS.ERROR))
     elif (control == CONTROL.RESULT):
         screen.addstr(height, 0, "[RESULT]", curses.color_pair(STATUS.RESULT))
 
@@ -396,13 +399,13 @@ def address_generator(host):
 
 
 # this function will do sending/receving updates, processing packets
-def handle_udp_all(screen):
+def handle_udp_all(screen, start):
     global DHList, ROUTETable, DESTList, SERVER, CONVERGENCE, SERVER_CONVERGENCE
 
     # a listen socket, listening on port 5678 (UDP)
     socket_l = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     socket_l.settimeout(UPDATE_TIMEOUT)
-    socket_l.bind(HOST_ADDRESS, PORT)
+    socket_l.bind((HOST_ADDRESS, PORT))
     sent_time = 0
     sent_time2 = 0
     sent_time3 = 0
@@ -416,55 +419,55 @@ def handle_udp_all(screen):
                 send_server_info(dh_address)
             sent_time2 = time.time()
 
-        if (((time.time() - sent_time3) >= INTERVAL) and CONVERGENCE):  # After convergence, send HELLO
-            for DH in DHList:
-                dh_address = address_generator(DH[0])
-                send_hello(dh_address, sequenceNum)
-            sequenceNum = (sequenceNum + 1) % SEQ
-            sent_time3 = time.time()
+        #if (((time.time() - sent_time3) >= INTERVAL) and CONVERGENCE):  # After convergence, send HELLO
+        #    for DH in DHList:
+        #        dh_address = address_generator(DH[0])
+        #        send_hello(dh_address, sequenceNum)
+        #    sequenceNum = (sequenceNum + 1) % SEQ
+        #    sent_time3 = time.time()
 
         elif (((time.time() - sent_time) >= INTERVAL) and (not CONVERGENCE)):  # Before convergence, send UPDATE
             for DH in DHList:
                 dh_address = address_generator(DH[0])
                 send_update(dh_address)
             sent_time = time.time()
-            if (len(DESTList) == TOTAL_NODES):  # if the nodes number is the length of destination list, then in convergence
+            if (len(DESTList) == TOTAL_NODES - 1):  # if the nodes number is the length of destination list, then in convergence
                 CONVERGENCE == 1
 
         # calculate the successive lost ACK from a DH, then check whether it is larger then the limitation of SUCCESSIVE_LOST
-        for DH in DHList:
-            DH[2] = 0
-            if (sequenceNum < DH[1]):
-                DH[2] = (SEQ - DH[1]) + sequenceNum
-            else:
-                DH[2] = sequenceNum - DH[1]
-
-            # if a DH is lost, then delete every information from database, and CONVERGENCE status becomes false
-            if (DH[2] >= SUCCESSIVE_LOST):
-                print_screen(screen, CONTROL.WARNING, "DH node: " + "#" + str(STATUS.RED) + "[" + str(DH[0]) + "]" + " is lost")
-                tBlinkRed = threading.Thread(target = blink_red)
-                tBlinkRed.start()
-
-                CONVERGENCE = 0
-                lostDH = int(DH[0])
-                DHList.remove(DH)
-                for routing_list in ROUTETable:
-                    for identifier in routing_list:
-                        if (int(identifier) == lostDH) :
-                            ROUTETable.remove(routing_list)
-                            break
-
-                for dest in DESTList:
-                    if (int(dest) == lostDH):
-                        DESTList.remove(dest)
-                        break
+        #for DH in DHList:
+        #    DH[2] = 0
+        #    if (sequenceNum < DH[1]):
+        #        DH[2] = (SEQ - DH[1]) + sequenceNum
+        #    else:
+        #        DH[2] = sequenceNum - DH[1]
+        #
+        #    # if a DH is lost, then delete every information from database, and CONVERGENCE status becomes false
+        #    if (DH[2] >= SUCCESSIVE_LOST):
+        #        print_screen(screen, CONTROL.WARNING, "DH node: " + "#" + str(STATUS.RED) + "[" + str(DH[0]) + "]" + " is lost")
+        #        tBlinkRed = threading.Thread(target = blink_red)
+        #        tBlinkRed.start()
+        #
+        #        CONVERGENCE = 0
+        #        lostDH = int(DH[0])
+        #        DHList.remove(DH)
+        #        for routing_list in ROUTETable:
+        #            for identifier in routing_list:
+        #                if (int(identifier) == lostDH) :
+        #                    ROUTETable.remove(routing_list)
+        #                    break
+        #
+        #        for dest in DESTList:
+        #            if (int(dest) == lostDH):
+        #                DESTList.remove(dest)
+        #                break
 
         # receive the messages from DHs or remote nodes
         try:
             data, address = socket_l.recvfrom(BUFFER)
             data = data.split()
             msg_type = int(data[0])
-            source_node = int(data[1])
+            direct_source_node = int(data[1])
 
             # A server message from a designated server, reply it according to routing table
             # then floos the message to other DHs
@@ -479,11 +482,11 @@ def handle_udp_all(screen):
                         reply_server(path_address, HOST)
                         break
                 for DH in DHList:  # then flood the server message to other DHs
-                    if (source_node != DH[0]):  # split horizon
+                    if (direct_source_node != DH[0]):  # split horizon
                         dh_address = address_generator(DH[0])
                         send_server_info(dh_address)
 
-            # if receive a reply to server message from a DH
+            # if receive a reply from SOURCE -> SERVER
             # forward it to the server according to routing table
             # this will not change the source node information
             if (msg_type == MESSAGE_TYPE.SERVERACK):
@@ -491,7 +494,7 @@ def handle_udp_all(screen):
                 if (SERVER == HOST):  # if I am the server, record the source node
                     if (not (source_node in server_reply)):
                         server_reply.append(source_node)
-                    if (len(server_reply) == TOTAL_NODES):  # all nodes know server identifier
+                    if (len(server_reply) == TOTAL_NODES - 1):  # all nodes know server identifier
                         SERVER_CONVERGENCE = 1
                 else:  # I am not the server, forward it to server according to routing table
                     for route_list in ROUTETable:
@@ -503,97 +506,106 @@ def handle_udp_all(screen):
 
             # update message, if in convergence then drop it
             # if not in convergence, handle the update
+            # recover the update information into a two dimension list
+            # then pass it to another function
             if (msg_type == MESSAGE_TYPE.UPDATE and (not CONVERGENCE)):
                 print_screen(screen, CONTROL.UPDATE, "A table update received from: " + "#" + str(STATUS.BLUE) + "[node " + str(source_node) + "]")
                 received_table = []
                 temp_list = []
                 for identifier in data[1:]:
-                    source_node = int(identifier)
-                    if (data[data.index(identifier) + 1] == source_node):
-                        temp_list.append(identifier)
+                    #direct_source_node = int(identifier)
+                    temp_list.append(int(identifier))
+                    if (int(data[data.index(identifier) + 1]) == direct_source_node):
                         received_table.append(temp_list)
                         temp_list = []
-                    else:
-                        temp_list.append(identifier)
                 handle_route_update(received_table)
 
             # HELLO message, get sequence number from HELLO
             # send ACK with the sequence number back
-            if (msg_type == MESSAGE_TYPE.HELLO):
-                print_screen(screen, CONTROL.UPDATE, "A hello message received from: " + "#" + str(STATUS.BLUE) + "[node " + str(source_node) + "]")
-                seq_num = int(data[2])
-                dh_address = address_generator(source_node)
-                reply_ack(dh_address, seq_num)
-
+            #if (msg_type == MESSAGE_TYPE.HELLO):
+            #    print_screen(screen, CONTROL.UPDATE, "A hello message received from: " + "#" + str(STATUS.BLUE) + "[node " + str(direct_source_node) + "]")
+            #    seq_num = int(data[2])
+            #    dh_address = address_generator(direct_source_node)
+            #    reply_ack(dh_address, seq_num)
+            #
             # ACK from DH, record the received sequence number
-            if (msg_type == MESSAGE_TYPE.ACK):
-                seq_num = int(data[2])
-                for DH in DHList:
-                    if (source_node == DH):
-                        DH[1] = seq_num
-                        break
+            #if (msg_type == MESSAGE_TYPE.ACK):
+            #    seq_num = int(data[2])
+            #    for DH in DHList:
+            #        if (direct_source_node == DH):
+            #            DH[1] = seq_num
+            #            break
 
             # A triggered message from SOURCE -> SERVER, response to it via LED(GREEN) on the path
             # if I am not server, forward it according to routing table
             # if I am the server, send Data ACK back to source node
-            if (msg_type == MESSAGE_TYPE.DATA):
-                destination_node = int(data[2])
-                timestamp = float(data[3])
-                if (SERVER == HOST):  # if I am the server, recorde the timestamp, send to laptop, send ACK back to source node
-                    for route_list in ROUTETable:
-                        if (route_list[-1] == destination_node):
-                            path_node = int(route_list[1])
-                            path_address = address_generator(path_node)
-                            reply_sensor_ack(path_address, destination_node, timestamp)
-                            print_screen(screen, CONTROL.UPDATE, "A triggered message received from: " + "#" + str(STATUS.BLUE) + "[node " + str(destination_node) + "]")
-
-
-                            ###### send to laptop #####
-
-
-                            distance = len(route_list) - 1
-                            tBlinkGreen = threading.Thread(target = blink_green, args = (distance))  # blink Green LED when server sends ACK
-                            tBlinkGreen.start()
-                            break
-                else:  # if I am not the server, forward it to the server according to routing table
-                    source_node = destination_node
-                    for route_list in ROUTETable:
-                        if (route_list[-1] == SERVER):
-                            path_node = int(route_list[1])
-                            path_address = address_generator(path_node)
-                            send_sensor_event(path_address, source_node, timestamp)
-                            break;
+            #if (msg_type == MESSAGE_TYPE.DATA):
+            #    destination_node = int(data[2])
+            #    timestamp = float(data[3])
+            #    if (SERVER == HOST):  # if I am the server, recorde the timestamp, send to laptop, send ACK back to source node
+            #        for route_list in ROUTETable:
+            #            if (route_list[-1] == destination_node):
+            #                path_node = int(route_list[1])
+            #                path_address = address_generator(path_node)
+            #                reply_sensor_ack(path_address, destination_node, timestamp)
+            #                print_screen(screen, CONTROL.UPDATE, "A triggered message received from: " + "#" + str(STATUS.BLUE) + "[node " + str(destination_node) + "]")
+            #
+            #
+            #                ###### send to laptop #####
+            #
+            #
+            #                distance = len(route_list) - 1
+            #                tBlinkGreen = threading.Thread(target = blink_green, args = (distance))  # blink Green LED when server sends ACK
+            #                tBlinkGreen.start()
+            #                break
+            #    else:  # if I am not the server, forward it to the server according to routing table
+            #        source_node = destination_node
+            #        for route_list in ROUTETable:
+            #            if (route_list[-1] == SERVER):
+            #                path_node = int(route_list[1])
+            #                path_address = address_generator(path_node)
+            #                send_sensor_event(path_address, source_node, timestamp)
+            #                break;
 
             # DataACK from SERVER -> SOURCE(DESTINATION), in here the LED(BLUE) will blink to it if local is destination
             # if I am not the destination, forward the ack to source node according to routing table
             # if I am the destination, terminate the transmission, blink LED
-            if (msg_type == MESSAGE_TYPE.DATAACK):
-                destination_node = int(data[2])
-                timestamp = float(data[3])  # the timestamp of sending this packet
-                if (destination_node == HOST):  # if I am the destination
-                    if (time.time() - timestamp <= INTERVAL):  # ACK is not late
-                        print_screen(screen, CONTROL.UPDATE, "A triggered message ACK received from server: " + "#" + str(STATUS.BLUE) + "[node " + str(SERVER) + "]")
-                    else:
-                        print_screen(screen, CONTROL.WARNING, "#" + str(STATUS.RED) + "[An ACK to triggered message is delayed]")
-                    tBlinkBlue = threading.Thread(target = blink_blue)
-                    tBlinkBlue.start()
-                else:  # if I am not the destination, forward the message to destination according to routing table
-                    for route_list in ROUTETable:
-                        if (route_list[-1] == destination_node):
-                            path_node = int(route_list[1])
-                            path_address = address_generator(path_node)
-                            reply_sensor_ack(path_address, destination_node, timestamp)
+            #if (msg_type == MESSAGE_TYPE.DATAACK):
+            #    destination_node = int(data[2])
+            #    timestamp = float(data[3])  # the timestamp of sending this packet
+            #    if (destination_node == HOST):  # if I am the destination
+            #        if (time.time() - timestamp <= INTERVAL):  # ACK is not late
+            #            print_screen(screen, CONTROL.UPDATE, "A triggered message ACK received from server: " + "#" + str(STATUS.BLUE) + "[node " + str(SERVER) + "]")
+            #        else:
+            #            print_screen(screen, CONTROL.WARNING, "#" + str(STATUS.RED) + "[An ACK to triggered message is delayed]")
+            #        tBlinkBlue = threading.Thread(target = blink_blue)
+            #        tBlinkBlue.start()
+            #    else:  # if I am not the destination, forward the message to destination according to routing table
+            #        for route_list in ROUTETable:
+            #            if (route_list[-1] == destination_node):
+            #                path_node = int(route_list[1])
+            #                path_address = address_generator(path_node)
+            #                reply_sensor_ack(path_address, destination_node, timestamp)
 
         except socket.error:
             pass
 
+def terminate(thread):
+    exc = ctypes.py_object(SystemExit)
+    res = ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(thread.ident), exc)
+    if res == 0:
+        raise ValueError("nonexistent thread id")
+    elif res > 1:
+        ctypes.pythonapi.PyThreadState_SetAsyncExc(thread.ident, None)
+        raise SystemError("PyThreadState_SetAsyncExc failed")
+
 
 # this function will do sending updates
 def send_update(dh_address):
-    chain = itertools.chain(*ROUTETable)   # flat the routing table then convert to a flat list
+    chain = itertools.chain(*ROUTETable)  # flat the routing table into an one dimension list
     message = list(chain)
     message = [str(x) for x in message]
-    message = ' '.join(message)
+    message = ' '.join(message)  # make the flatted routing table into a string
     message = str(MESSAGE_TYPE.UPDATE) + ' ' + message
 
     # Send UDP datagram
@@ -688,41 +700,25 @@ def handle_route_update(received_table):
 
 
 # this function will monitor sensor, generate triggered packet while sensors being triggered
-def handle_sensor_event(screen):
+def handle_sensor_event(screen, start):
     global SENSOR_TIMESTAMP
 
-
-    # when event happens
-    if (SERVER != 0):
-        timestamp = time.time()
-        SENSOR_TIMESTAMP = timestamp
-        for route_list in ROUTETable:
-            if (route_list[-1] == SERVER):
-                path_node = int(route_list[1])
-                path_address = address_generator(path_node)
-                send_sensor_event(path_address, HOST, timestamp)
-                distance = len(route_list) - 1
-                tBlinkGreen = threading.Thread(target = blink_green, args = (distance))  # blink the Green LED
-                tBlinkGreen.start()
-                break;
-
-
+    if (not start):
+        # when event happens
+        if (SERVER != 0):
+            timestamp = time.time()
+            SENSOR_TIMESTAMP = timestamp
+            for route_list in ROUTETable:
+                if (route_list[-1] == SERVER):
+                    path_node = int(route_list[1])
+                    path_address = address_generator(path_node)
+                    send_sensor_event(path_address, HOST, timestamp)
+                    distance = len(route_list) - 1
+                    tBlinkGreen = threading.Thread(target = blink_green, args = (distance))  # blink the Green LED
+                    tBlinkGreen.start()
+                    break;
 
 
-
-
-
-
-
-
-
-
-
-
-def start_pir(screen):
-
-
-    print("")
 
 
 
