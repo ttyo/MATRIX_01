@@ -40,7 +40,7 @@ def init():
     global SEQ, CONVERGENCE, BUFFER, SERVER_CONVERGENCE
     global SENSOR_TIMESTAMP
 
-    PORT = 5678  # for sending / listening table updates
+    PORT = 55056  # for sending / listening table updates
     UPDATE_INTERVAL = 5
     UPDATE_TIMEOUT = 15
     HELLO_INTERVAL = 5
@@ -66,15 +66,15 @@ def init():
 # show neighbour status
 def main(screen):
     global history, window_size, HOST, HOST_ADDRESS
-    global DHList, ROUTETable, DESTList
-    global TOTAL_NODES, SERVER, GATEWAY, SERVER_CONVERGENCE
+    global DHList, ROUTETable, DSTList
+    global TOTAL_NODES, SERVER, GATEWAY, SERVER_CONVERGENCE, NTP_ADDRESS
 
     TOTAL_NODES = 0
     SERVER = 0
     GATEWAY = "10.11.11.100"
     DHList = []  # neighbour list
     ROUTETable = []  # routing table, contains routing list
-    DESTList = []  # destination list
+    DSTList = []  # destination list
     history = []
     Y, X = screen.getmaxyx()
     window_size = Y - 3
@@ -92,23 +92,31 @@ def main(screen):
     curses.init_pair(STATUS.ERROR, curses.COLOR_YELLOW, curses.COLOR_WHITE)
     curses.init_pair(STATUS.RESULT, curses.COLOR_GREEN, curses.COLOR_WHITE)
     curses.init_pair(STATUS.YELLOW, curses.COLOR_YELLOW, -1)
-    print_screen(screen, CONTROL.NORMAL, "Please input data under the following scheme to initiate the protocol:")
-    print_screen(screen, CONTROL.NORMAL, "1. Input the total number of nodes in the network. (e.g.: network 6)")
-    print_screen(screen, CONTROL.NORMAL, "2. Input the local identifier, followed by Direct Hop (DH) identifiers. (e.g.: node 5 4 6)")
-    print_screen(screen, CONTROL.NORMAL, "3. Designate server node (on the expecting server node itself, e.g.: server)")
-    print_screen(screen, CONTROL.NORMAL, "4. Input \"done\" to skip designating server")
+    print_screen(screen, CONTROL.NORMAL, "Please configure local node under the following scheme to ")
+    print_screen(screen, CONTROL.NORMAL, "initiate the protocol:")
+    print_screen(screen, CONTROL.NORMAL, "1. Input the total number of nodes in the network: ")
+    print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[network (total_number)]]")
+    print_screen(screen, CONTROL.NORMAL, "2. Input the local identifier (LI) and direct hops (DH): ")
+    print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[node (LI) (DH ...)]]")
+    print_screen(screen, CONTROL.NORMAL, "3. Designate local node as server, this will flood server info")
+    print_screen(screen, CONTROL.NORMAL, "to all the other nodes, or use command [#" + str(STATUS.COMMAND) + "[done]] to skip:")
+    print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[server]]")
+    print_screen(screen, CONTROL.NORMAL, "4. Designate NTP server: ")
+    print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[ntp (ntp_server_ip_address)]]")
 
     network_configured = 0
     node_configured = 0
     display_type = 0
     done = 0
+    ntp = 0
     while True:
         command = stdin_to_command(screen, height, display_type)
 
-        if (network_configured and node_configured and done):
+        if (network_configured and node_configured and done and ntp):
             display_type = 1
             break
-        elif (command.startswith("node") or command.startswith("network") or command.startswith("server") or command.startswith("done")):
+        elif (command.startswith("node") or command.startswith("network") or command.startswith("server")
+              or command.startswith("done") or command.startswith("ntp")):
             if (command.startswith("network")):  # record the total number of nodes
                 try:
                     parameter = int(command.split()[1])
@@ -123,12 +131,14 @@ def main(screen):
                 try:
                     parameter = command.split()
                     HOST = int(parameter[1])
+                    #HOST_ADDRESS = address_generator(HOST)
+                    #HOST_ADDRESS = "10.11.11.11"
                     HOST_ADDRESS = socket.gethostbyname(socket.gethostname())
                     for num in parameter[2:]:
                         DH = int(num)
                         DHList.append([DH, 0, 0])  # DHList: [A, B, C], A is DH identifier, B is received sequence number, C is successive lost number
                         ROUTETable.append([HOST, DH])
-                        DESTList.append([DH, 1])
+                        DSTList.append([DH, 1])  # DSTList: [A, B], A is DH identifier, B is distance to A
                     print_screen(screen, CONTROL.NORMAL, "Command: " + "#" + str(STATUS.COMMAND) + "[" + command + "]")
                     node_configured = 1
                 except:
@@ -146,6 +156,16 @@ def main(screen):
             elif (command == "done"):
                 done = 1
                 print_screen(screen, CONTROL.NORMAL, "Command: " + "#" + str(STATUS.COMMAND) + "[" + command + "]")
+            elif (command.startswith("ntp")):
+                try:
+                    parameter = command.split()[1]
+                    print_screen(screen, CONTROL.NORMAL, "Command: " + "#" + str(STATUS.COMMAND) + "[" + command + "]")
+                    NTP_ADDRESS = parameter
+                    config_ntp()
+                    ntp = 1
+                except:
+                    print_screen(screen, CONTROL.ERROR, "Invalid parameter(s) in command: " + "#" + str(STATUS.YELLOW) + "[" + command + "]")
+                    continue
 
         elif (command == ''):
             print_screen(screen, CONTROL.NORMAL, "")
@@ -168,7 +188,8 @@ def main(screen):
     print_screen(screen, CONTROL.NORMAL, "Sensor module started")
 
     print_screen(screen, CONTROL.NORMAL, "Local identifier: " + "#" + str(STATUS.BLUE) + "[" + str(HOST) + "]")
-    print_screen(screen, CONTROL.NORMAL, "Local address: " + "#" + str(STATUS.BLUE) + "[" + HOST_ADDRESS + "]")
+    print_screen(screen, CONTROL.NORMAL, "Local ip address: " + "#" + str(STATUS.BLUE) + "[" + HOST_ADDRESS + "]")
+    print_screen(screen, CONTROL.NORMAL, "NTP server: " + "#" + str(STATUS.BLUE) + "[" + NTP_ADDRESS + "]")
     print_screen(screen, CONTROL.NORMAL, "")
     print_screen(screen, CONTROL.NORMAL, "Tips:")
     print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[show routingtable]] will display the current routing table.")
@@ -176,6 +197,7 @@ def main(screen):
     print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[show destination]] will display the current known destinations.")
     print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[show metric]] will display the metric of every destination.")
     print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[show server]] will display the current server node.")
+    print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[show info]] will display system information like ip address.")
     print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[server]] will designate a new server node.")
     print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[quit]] will terminate the program.")
     print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[help]] will re-display tips above.")
@@ -225,21 +247,21 @@ def main(screen):
                             print_screen(screen, CONTROL.RESULT, "#" + str(STATUS.GREEN) + "[" + result + "]")
 
                 elif (parameter == "destination"):
-                    if (len(DESTList) == 0):
+                    if (len(DSTList) == 0):
                         print_screen(screen, CONTROL.RESULT, "#" + str(STATUS.GREEN) + "[Destination list is empty]")
                     else:
                         print_screen(screen, CONTROL.RESULT, "#" + str(STATUS.GREEN) + "[Known destination(s):]")
-                        for Dest in DESTList:
-                            result = "# " + str(Dest[0])
+                        for Dst in DSTList:
+                            result = "# " + str(Dst[0])
                             print_screen(screen, CONTROL.RESULT, "#" + str(STATUS.GREEN) + "[" + result + "]")
 
                 elif (parameter == "metric"):
-                    if (len(DESTList) == 0):
+                    if (len(DSTList) == 0):
                         print_screen(screen, CONTROL.RESULT, "#" + str(STATUS.GREEN) + "[Destination list is empty]")
                     else:
                         print_screen(screen, CONTROL.RESULT, "#" + str(STATUS.GREEN) + "[Destination  Metric]")
-                        for Dest in DESTList:
-                            result = '     ' + str(Dest[0]) + '          ' + str(Dest[1])
+                        for Dst in DSTList:
+                            result = '     ' + str(Dst[0]) + '          ' + str(Dst[1])
                             print_screen(screen, CONTROL.RESULT, "#" + str(STATUS.GREEN) + "[" + result + "]")
 
                 elif (parameter == "server"):
@@ -251,6 +273,11 @@ def main(screen):
                     else:
                         result = "Designated node is: node " + str(SERVER)
                         print_screen(screen, CONTROL.RESULT, "#" + str(STATUS.GREEN) + "[" + result + "]")
+
+                elif (parameter == "info"):
+                    print_screen(screen, CONTROL.NORMAL, "Local identifier: " + "#" + str(STATUS.BLUE) + "[" + str(HOST) + "]")
+                    print_screen(screen, CONTROL.NORMAL, "Local ip address: " + "#" + str(STATUS.BLUE) + "[" + HOST_ADDRESS + "]")
+                    print_screen(screen, CONTROL.NORMAL, "NTP server: " + "#" + str(STATUS.BLUE) + "[" + NTP_ADDRESS + "]")
 
                 else:
                     print_screen (screen, CONTROL.ERROR, "Unknown \"show\" parameter(s): " + "#" + str(STATUS.YELLOW) + "[" + parameter + "]")
@@ -273,6 +300,7 @@ def main(screen):
             print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[show destination]] will display the current known destinations.")
             print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[show metric]] will display the metric of every destination.")
             print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[show server]] will display the current server node.")
+            print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[show info]] will display system information like ip address.")
             print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[server]] will designate a new server node.")
             print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[quit]] will terminate the program.")
 
@@ -400,7 +428,7 @@ def address_generator(host):
 
 # this function will do sending/receving updates, processing packets
 def handle_udp_all(screen, start):
-    global DHList, ROUTETable, DESTList, SERVER, CONVERGENCE, SERVER_CONVERGENCE
+    global DHList, ROUTETable, DSTList, SERVER, CONVERGENCE, SERVER_CONVERGENCE
 
     # a listen socket, listening on port 5678 (UDP)
     socket_l = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -431,7 +459,7 @@ def handle_udp_all(screen, start):
                 dh_address = address_generator(DH[0])
                 send_update(dh_address)
             sent_time = time.time()
-            if (len(DESTList) == TOTAL_NODES - 1):  # if the nodes number is the length of destination list, then in convergence
+            if (len(DSTList) == TOTAL_NODES - 1):  # if the nodes number is the length of destination list, then in convergence
                 CONVERGENCE == 1
 
         # calculate the successive lost ACK from a DH, then check whether it is larger then the limitation of SUCCESSIVE_LOST
@@ -457,9 +485,9 @@ def handle_udp_all(screen, start):
         #                    ROUTETable.remove(routing_list)
         #                    break
         #
-        #        for dest in DESTList:
-        #            if (int(dest) == lostDH):
-        #                DESTList.remove(dest)
+        #        for dst in DSTList:
+        #            if (int(dst) == lostDH):
+        #                DSTList.remove(dst)
         #                break
 
         # receive the messages from DHs or remote nodes
@@ -469,13 +497,13 @@ def handle_udp_all(screen, start):
             msg_type = int(data[0])
             direct_source_node = int(data[1])
 
-            # A server message from a designated server, reply it according to routing table
-            # then floos the message to other DHs
+            # A server message from SERVER -> any nodes (flood), reply it according to routing table
+            # then flood the message to other DHs except the source node (split horizon)
             # message sent between DHs, step by step
             if (msg_type == MESSAGE_TYPE.SERVER):
                 SERVER = int(data[2])
                 server_address = address_generator(SERVER)
-                for route_list in ROUTETable:  # reply to server, search the routing table
+                for route_list in ROUTETable:  # reply to server, search the routing table, SOURCE -> SERVER
                     if (route_list[-1] == SERVER):
                         path_node = int(route_list[1])
                         path_address = address_generator(path_node)
@@ -677,26 +705,25 @@ def reply_sensor_ack(path_address, destination_node, timestamp):
 
 # this function will update local table and destination based on the received table
 def handle_route_update(received_table):
-    global DHList, ROUTETable, DESTList, SERVER
+    global ROUTETable, DSTList
 
-    destination_temp = []
+    dst_temp_list = []
+    dst_current_list = []
+    index = 0
+    for dst_list in DSTList:
+        dst_current_list.append(dst_list[0]) # a temp destination list of current knowing nodes
+
+
     for update_list in received_table:
-        destination_temp.append(update_list[-1])
-
-
-
-    print("")
-
-
-
-
-
-
-
-
-
-
-
+        new_destination = int(update_list[-1])
+        if (new_destination in dst_current_list):  # updated destination is in current destination list
+            continue
+        else:  # updated destination is not in current destination list, add to DSTList and ROUTETable
+            new_route_list = update_list
+            new_route_list.insert(0, HOST)
+            new_distance = len(new_route_list) - 1
+            ROUTETable.append(new_route_list)  # update the routing table
+            DSTList.append([new_destination, new_distance])  # update the destination list
 
 
 # this function will monitor sensor, generate triggered packet while sensors being triggered
@@ -723,6 +750,9 @@ def handle_sensor_event(screen, start):
 
 
 
+def config_ntp():
+
+   a = 1
 
 
 
