@@ -131,9 +131,9 @@ def main(screen):
                 try:
                     parameter = command.split()
                     HOST = int(parameter[1])
-                    #HOST_ADDRESS = address_generator(HOST)
+                    HOST_ADDRESS = address_generator(HOST)
                     #HOST_ADDRESS = "10.11.11.11"
-                    HOST_ADDRESS = socket.gethostbyname(socket.gethostname())
+                    #HOST_ADDRESS = socket.gethostbyname(socket.gethostname())
                     for num in parameter[2:]:
                         DH = int(num)
                         DHList[DH] = [0, 0]  # DHList: [A, B, C], A is DH identifier, B is received sequence number, C is successive lost number
@@ -424,7 +424,8 @@ def roll_up_screen(screen):
 
 
 def address_generator(host):
-    prefix = "10.11.11."
+    #prefix = "10.11.11."
+    prefix = "192.168.1."
     host_address = prefix + str(host)
     return host_address
 
@@ -436,6 +437,7 @@ def handle_communication(screen, start):
     # a listen socket, listening on port 5678 (UDP)
     socket_l = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     socket_l.settimeout(UPDATE_TIMEOUT)
+    print_screen(screen, CONTROL.NORMAL, "Host: " + HOST_ADDRESS);
     socket_l.bind((HOST_ADDRESS, PORT))
     sent_time = 0
     sent_time2 = 0
