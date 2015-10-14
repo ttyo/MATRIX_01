@@ -72,9 +72,9 @@ def main(screen):
     TOTAL_NODES = 0
     SERVER = 0
     GATEWAY = "10.11.11.100"
-    DHList = []  # neighbour list
+    DHList = {}  # neighbour list
     ROUTETable = []  # routing table, contains routing list
-    DSTList = []  # destination list
+    DSTList = {}  # destination list
     history = []
     Y, X = screen.getmaxyx()
     window_size = Y - 3
@@ -136,9 +136,9 @@ def main(screen):
                     HOST_ADDRESS = socket.gethostbyname(socket.gethostname())
                     for num in parameter[2:]:
                         DH = int(num)
-                        DHList.append([DH, 0, 0])  # DHList: [A, B, C], A is DH identifier, B is received sequence number, C is successive lost number
+                        DHList[DH] = [0, 0]  # DHList: [A, B, C], A is DH identifier, B is received sequence number, C is successive lost number
                         ROUTETable.append([HOST, DH])
-                        DSTList.append([DH, 1])  # DSTList: [A, B], A is DH identifier, B is distance to A
+                        DSTList[DH] = 1  # DSTList: [A, B], A is DH identifier, B is distance to A
                     print_screen(screen, CONTROL.NORMAL, "Command: " + "#" + str(STATUS.COMMAND) + "[" + command + "]")
                     node_configured = 1
                 except:
@@ -177,15 +177,17 @@ def main(screen):
         # end of while
 
     print_screen(screen, CONTROL.NORMAL, "")
-    print_screen(screen, CONTROL.NORMAL, "Protocol initialising ... (RMP pre-alpha, version 0.5.2)")
+    print_screen(screen, CONTROL.NORMAL, "")
+    print_screen(screen, CONTROL.NORMAL, "")
+    print_screen(screen, CONTROL.NORMAL, "Protocol initialising ... (RMP pre-alpha, version 0.6)")
 
     # start threads now
-    tHandleUdpAll = threading.Thread(target = handle_udp_all, args = (screen, 1))  # a bug in here, _curses.urses has no window
+    tHandleUdpAll = threading.Thread(target = handle_communication, args = (screen, 1))  # a bug in here, _curses.urses has no window
     tHandleUdpAll.start()
-    print_screen(screen, CONTROL.NORMAL, "Communication module started")
+    print_screen(screen, CONTROL.NORMAL, "Communication module starting ...")
     tHandleSensorEvent = threading.Thread(target = handle_sensor_event, args = (screen, 1))
     tHandleSensorEvent.start()
-    print_screen(screen, CONTROL.NORMAL, "Sensor module started")
+    print_screen(screen, CONTROL.NORMAL, "Sensor module starting ...")
 
     print_screen(screen, CONTROL.NORMAL, "Local identifier: " + "#" + str(STATUS.BLUE) + "[" + str(HOST) + "]")
     print_screen(screen, CONTROL.NORMAL, "Local ip address: " + "#" + str(STATUS.BLUE) + "[" + HOST_ADDRESS + "]")
@@ -242,8 +244,8 @@ def main(screen):
                         print_screen(screen, CONTROL.RESULT, "#" + str(STATUS.GREEN) + "[Neighbour list is empty]")
                     else:
                         print_screen(screen, CONTROL.RESULT, "#" + str(STATUS.GREEN) + "[List of Direct Hop(s):]")
-                        for DH in DHList:
-                            result = "DH label: " + str(DH[0])
+                        for DH_key in DHList:
+                            result = "DH label: " + str(DH_key)
                             print_screen(screen, CONTROL.RESULT, "#" + str(STATUS.GREEN) + "[" + result + "]")
 
                 elif (parameter == "destination"):
@@ -251,8 +253,8 @@ def main(screen):
                         print_screen(screen, CONTROL.RESULT, "#" + str(STATUS.GREEN) + "[Destination list is empty]")
                     else:
                         print_screen(screen, CONTROL.RESULT, "#" + str(STATUS.GREEN) + "[Known destination(s):]")
-                        for Dst in DSTList:
-                            result = "# " + str(Dst[0])
+                        for DST_key in DSTList:
+                            result = "# " + str(DST_key)
                             print_screen(screen, CONTROL.RESULT, "#" + str(STATUS.GREEN) + "[" + result + "]")
 
                 elif (parameter == "metric"):
@@ -260,8 +262,8 @@ def main(screen):
                         print_screen(screen, CONTROL.RESULT, "#" + str(STATUS.GREEN) + "[Destination list is empty]")
                     else:
                         print_screen(screen, CONTROL.RESULT, "#" + str(STATUS.GREEN) + "[Destination  Metric]")
-                        for Dst in DSTList:
-                            result = '     ' + str(Dst[0]) + '          ' + str(Dst[1])
+                        for DST_key in DSTList:
+                            result = '     ' + str(DST_key) + '          ' + str(DSTList[DST_key])
                             print_screen(screen, CONTROL.RESULT, "#" + str(STATUS.GREEN) + "[" + result + "]")
 
                 elif (parameter == "server"):
@@ -275,6 +277,7 @@ def main(screen):
                         print_screen(screen, CONTROL.RESULT, "#" + str(STATUS.GREEN) + "[" + result + "]")
 
                 elif (parameter == "info"):
+                    print_screen(screen, CONTROL.NORMAL, "RMP pre-alpha, version 0.6")
                     print_screen(screen, CONTROL.NORMAL, "Local identifier: " + "#" + str(STATUS.BLUE) + "[" + str(HOST) + "]")
                     print_screen(screen, CONTROL.NORMAL, "Local ip address: " + "#" + str(STATUS.BLUE) + "[" + HOST_ADDRESS + "]")
                     print_screen(screen, CONTROL.NORMAL, "NTP server: " + "#" + str(STATUS.BLUE) + "[" + NTP_ADDRESS + "]")
@@ -294,7 +297,7 @@ def main(screen):
             SERVER = int(HOST)
 
         elif (command == "help"):
-            print_screen(screen, CONTROL.NORMAL, "RMP pre-alpha, version 0.5.2")
+            print_screen(screen, CONTROL.NORMAL, "Command: " + "#" + str(STATUS.COMMAND) + "[" + command + "]")
             print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[show routingtable]] will display the current routing table.")
             print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[show neighbour]] will display the current neighbour list.")
             print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[show destination]] will display the current known destinations.")
@@ -427,7 +430,7 @@ def address_generator(host):
 
 
 # this function will do sending/receving updates, processing packets
-def handle_udp_all(screen, start):
+def handle_communication(screen, start):
     global DHList, ROUTETable, DSTList, SERVER, CONVERGENCE, SERVER_CONVERGENCE
 
     # a listen socket, listening on port 5678 (UDP)
@@ -442,8 +445,8 @@ def handle_udp_all(screen, start):
 
     while True:
         if (((time.time() - sent_time2) >= INTERVAL) and SERVER == HOST and (not SERVER_CONVERGENCE)):  # I am the server, fload the SERVER message
-            for DH in DHList:
-                dh_address = address_generator(DH[0])
+            for DH_key in DHList:
+                dh_address = address_generator(DH_key)
                 send_server_info(dh_address)
             sent_time2 = time.time()
 
@@ -454,40 +457,41 @@ def handle_udp_all(screen, start):
         #    sequenceNum = (sequenceNum + 1) % SEQ
         #    sent_time3 = time.time()
 
-        elif (((time.time() - sent_time) >= INTERVAL) and (not CONVERGENCE)):  # Before convergence, send UPDATE
-            for DH in DHList:
-                dh_address = address_generator(DH[0])
+        #elif (((time.time() - sent_time) >= INTERVAL) and (not CONVERGENCE)):  # Before convergence, send UPDATE
+        if (((time.time() - sent_time) >= INTERVAL) and (not CONVERGENCE)):  # Before convergence, send UPDATE
+            for DH_key in DHList:
+                dh_address = address_generator(DH_key)
                 send_update(dh_address)
             sent_time = time.time()
             if (len(DSTList) == TOTAL_NODES - 1):  # if the nodes number is the length of destination list, then in convergence
                 CONVERGENCE == 1
 
         # calculate the successive lost ACK from a DH, then check whether it is larger then the limitation of SUCCESSIVE_LOST
-        #for DH in DHList:
-        #    DH[2] = 0
+        #for DH_key in DHList:
+        #    DHList[DH_key][1] = 0
         #    if (sequenceNum < DH[1]):
-        #        DH[2] = (SEQ - DH[1]) + sequenceNum
+        #        DHList[DH_key][1] = (SEQ - DHList[DH_key][0]) + sequenceNum
         #    else:
-        #        DH[2] = sequenceNum - DH[1]
+        #        DHList[DH_key][1] = sequenceNum - DHList[DH_key][0]
         #
         #    # if a DH is lost, then delete every information from database, and CONVERGENCE status becomes false
-        #    if (DH[2] >= SUCCESSIVE_LOST):
-        #        print_screen(screen, CONTROL.WARNING, "DH node: " + "#" + str(STATUS.RED) + "[" + str(DH[0]) + "]" + " is lost")
+        #    if (DHList[DH_key][1] >= SUCCESSIVE_LOST):
+        #        print_screen(screen, CONTROL.WARNING, "DH node: " + "#" + str(STATUS.RED) + "[" + str(DH_key) + "]" + " is lost")
         #        tBlinkRed = threading.Thread(target = blink_red)
         #        tBlinkRed.start()
         #
         #        CONVERGENCE = 0
-        #        lostDH = int(DH[0])
-        #        DHList.remove(DH)
+        #        lostDH = int(DH_key)
+        #        del DHList[DH_key]
         #        for routing_list in ROUTETable:
         #            for identifier in routing_list:
         #                if (int(identifier) == lostDH) :
         #                    ROUTETable.remove(routing_list)
         #                    break
         #
-        #        for dst in DSTList:
-        #            if (int(dst) == lostDH):
-        #                DSTList.remove(dst)
+        #        for DST_key in DSTList:
+        #            if (int(DST_key) == lostDH):
+        #                del DSTList[DST_key]
         #                break
 
         # receive the messages from DHs or remote nodes
@@ -509,12 +513,12 @@ def handle_udp_all(screen, start):
                         path_address = address_generator(path_node)
                         reply_server(path_address, HOST)
                         break
-                for DH in DHList:  # then flood the server message to other DHs
-                    if (direct_source_node != DH[0]):  # split horizon
-                        dh_address = address_generator(DH[0])
+                for DH_key in DHList:  # then flood the server message to other DHs
+                    if (direct_source_node != DH_key):  # split horizon
+                        dh_address = address_generator(DH_key)
                         send_server_info(dh_address)
 
-            # if receive a reply from SOURCE -> SERVER
+            # if receive a reply from SOURCE -> LOCAL -> SERVER
             # forward it to the server according to routing table
             # this will not change the source node information
             if (msg_type == MESSAGE_TYPE.SERVERACK):
@@ -537,15 +541,20 @@ def handle_udp_all(screen, start):
             # recover the update information into a two dimension list
             # then pass it to another function
             if (msg_type == MESSAGE_TYPE.UPDATE and (not CONVERGENCE)):
-                print_screen(screen, CONTROL.UPDATE, "A table update received from: " + "#" + str(STATUS.BLUE) + "[node " + str(source_node) + "]")
+                del data[0]
+                print_screen(screen, CONTROL.UPDATE, "A routing table update received from: " + "#" + str(STATUS.BLUE) + "[node " + str(direct_source_node) + "]")
                 received_table = []
                 temp_list = []
-                for identifier in data[1:]:
+                for identifier in data:
                     #direct_source_node = int(identifier)
                     temp_list.append(int(identifier))
-                    if (int(data[data.index(identifier) + 1]) == direct_source_node):
-                        received_table.append(temp_list)
-                        temp_list = []
+                    if (data.index(identifier) < len(data) - 1):
+                        if (int(data[data.index(identifier) + 1]) == direct_source_node):  # received data is like: 6 4 6 1 4 6 5 6 1 2 3
+                            received_table.append(temp_list)
+                            temp_list = []
+                    elif (data.index(identifier) == len(data) - 1):  # comes to the last elements
+                            received_table.append(temp_list)
+                            temp_list = []
                 handle_route_update(received_table)
 
             # HELLO message, get sequence number from HELLO
@@ -559,9 +568,9 @@ def handle_udp_all(screen, start):
             # ACK from DH, record the received sequence number
             #if (msg_type == MESSAGE_TYPE.ACK):
             #    seq_num = int(data[2])
-            #    for DH in DHList:
+            #    for DH_key in DHList:
             #        if (direct_source_node == DH):
-            #            DH[1] = seq_num
+            #            DHList[DH_key][0] = seq_num
             #            break
 
             # A triggered message from SOURCE -> SERVER, response to it via LED(GREEN) on the path
@@ -641,7 +650,7 @@ def send_update(dh_address):
     socket_s.settimeout(UPDATE_TIMEOUT)
     socket_s.sendto(message, (dh_address, PORT))
 
-
+# this function will do sending hello
 def send_hello(dh_address, sequenceNum):
     message = str(MESSAGE_TYPE.HELLO)
     message = message + ' ' + str(HOST) + ' ' + str(sequenceNum)
@@ -652,6 +661,7 @@ def send_hello(dh_address, sequenceNum):
     socket_s.sendto(message, (dh_address, PORT))
 
 
+# this function will do replying hello
 def reply_ack(dh_address, sequenceNum):
     message = str(MESSAGE_TYPE.ACK)
     message = message + ' ' + str(HOST) + ' ' + str(sequenceNum)
@@ -662,16 +672,7 @@ def reply_ack(dh_address, sequenceNum):
     socket_s.sendto(message, (dh_address, PORT))
 
 
-def reply_server(path_address, source_node):
-    message = str(MESSAGE_TYPE.SERVERACK)
-    message = message + ' ' + str(HOST) + ' ' + str(source_node)
-
-    # Send UDP datagram
-    socket_s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    socket_s.settimeout(UPDATE_TIMEOUT)
-    socket_s.sendto(message, (path_address, PORT))
-
-
+# this function will do sending server information
 def send_server_info(dh_address):
     message = str(MESSAGE_TYPE.SERVER)
     message = message + ' ' + str(HOST) + ' ' + str(SERVER)
@@ -682,7 +683,18 @@ def send_server_info(dh_address):
     socket_s.sendto(message, (dh_address, PORT))
 
 
-# this function will generate triggered message to server, incuding timestamp
+# this function will do replying server
+def reply_server(path_address, source_node):
+    message = str(MESSAGE_TYPE.SERVERACK)
+    message = message + ' ' + str(HOST) + ' ' + str(source_node)
+
+    # Send UDP datagram
+    socket_s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    socket_s.settimeout(UPDATE_TIMEOUT)
+    socket_s.sendto(message, (path_address, PORT))
+
+
+# this function will generate triggered message to server, including timestamp, SOURCE -> SERVER
 def send_sensor_event(path_address, source_node, timestamp):
     message = str(MESSAGE_TYPE.DATA)
     message = message + ' ' + str(HOST) + ' ' + str(source_node) + ' ' + str(timestamp)
@@ -693,6 +705,7 @@ def send_sensor_event(path_address, source_node, timestamp):
     socket_s.sendto(message, (path_address, PORT))
 
 
+# this function will do replying the triggered message, SERVER -> DESTINATION
 def reply_sensor_ack(path_address, destination_node, timestamp):
     message = str(MESSAGE_TYPE.DATAACK)
     message = message + ' ' + str(HOST) + ' ' + str(destination_node) + ' ' + str(timestamp)
@@ -703,27 +716,20 @@ def reply_sensor_ack(path_address, destination_node, timestamp):
     socket_s.sendto(message, (path_address, PORT))
 
 
-# this function will update local table and destination based on the received table
+# this function will do updating local table and destination based on the received table
 def handle_route_update(received_table):
     global ROUTETable, DSTList
 
-    dst_temp_list = []
-    dst_current_list = []
-    index = 0
-    for dst_list in DSTList:
-        dst_current_list.append(dst_list[0]) # a temp destination list of current knowing nodes
-
-
     for update_list in received_table:
         new_destination = int(update_list[-1])
-        if (new_destination in dst_current_list):  # updated destination is in current destination list
+        if (new_destination in DSTList or new_destination == HOST):  # updated destination is in current destination list
             continue
         else:  # updated destination is not in current destination list, add to DSTList and ROUTETable
             new_route_list = update_list
             new_route_list.insert(0, HOST)
             new_distance = len(new_route_list) - 1
             ROUTETable.append(new_route_list)  # update the routing table
-            DSTList.append([new_destination, new_distance])  # update the destination list
+            DSTList.update({new_destination:new_distance})  # update the destination list
 
 
 # this function will monitor sensor, generate triggered packet while sensors being triggered
