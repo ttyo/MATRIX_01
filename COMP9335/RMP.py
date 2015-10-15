@@ -619,7 +619,7 @@ def handle_communication(screen, start):
             #
             #
                             distance = len(route_list) - 1
-                            tBlinkGreen = threading.Thread(target = blink_green, args = (distance))  # blink Green LED when server sends ACK
+                            tBlinkGreen = threading.Thread(target = blink_green, args = (distance,))  # blink Green LED when server sends ACK
                             tBlinkGreen.start()
                             break
                 else:  # if I am not the server, forward it to the server according to routing table
@@ -759,17 +759,19 @@ def handle_route_update(received_table):
             DSTList.update({new_destination:new_distance})  # update the destination list
 
 def eventCallback(channel):
+    global EVENT_DETECTED
     EVENT_DETECTED = 1
 
 
 # this function will monitor sensor, generate triggered packet while sensors being triggered
 def handle_sensor_event(screen, start):
-    global SENSOR_TIMESTAMP
+    global SENSOR_TIMESTAMP,EVENT_DETECTED, SERVER
 
     while True:
         if (EVENT_DETECTED):
             # when event happens
-            if (SERVER != 0):
+            #print_screen(screen, CONTROL.NORMAL, "Got here")
+            if (SERVER):
                 timestamp = time.time()
                 SENSOR_TIMESTAMP = timestamp
                 for route_list in ROUTETable:
@@ -778,7 +780,7 @@ def handle_sensor_event(screen, start):
                         path_address = address_generator(path_node)
                         send_sensor_event(path_address, HOST, timestamp)
                         distance = len(route_list) - 1
-                        tBlinkGreen = threading.Thread(target = blink_green, args = (distance))  # blink the Green LED
+                        tBlinkGreen = threading.Thread(target = blink_green, args = (distance, ))  # blink the Green LED
                         tBlinkGreen.start()
                         EVENT_DETECTED = 0
                         break;
