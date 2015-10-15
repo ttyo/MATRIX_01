@@ -594,8 +594,8 @@ def handle_communication(screen, start):
             #
             #
                             distance = len(route_list) - 1
-                            tBlinkGreen = threading.Thread(target = blink_green, args = (distance))  # blink Green LED when server sends ACK
-                            tBlinkGreen.start()
+                            #tBlinkGreen = threading.Thread(target = blink_green, args = (distance))  # blink Green LED when server sends ACK
+                            #tBlinkGreen.start()
                             break
             #    else:  # if I am not the server, forward it to the server according to routing table
                     source_node = destination_node
@@ -617,8 +617,8 @@ def handle_communication(screen, start):
                         print_screen(screen, CONTROL.UPDATE, "A triggered message ACK received from server: " + "#" + str(STATUS.BLUE) + "[node " + str(SERVER) + "]")
                     else:
                         print_screen(screen, CONTROL.WARNING, "#" + str(STATUS.RED) + "[An ACK to triggered message is delayed]")
-                    tBlinkBlue = threading.Thread(target = blink_blue)
-                    tBlinkBlue.start()
+                    #tBlinkBlue = threading.Thread(target = blink_blue)
+                    #tBlinkBlue.start()
                 else:  # if I am not the destination, forward the message to destination according to routing table
                     for route_list in ROUTETable:
                         if (route_list[-1] == destination_node):
