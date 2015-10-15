@@ -425,7 +425,7 @@ def roll_up_screen(screen):
 
 def address_generator(host):
     #prefix = "10.11.11."
-    prefix = "192.168.1."
+    prefix = "192.168.0."
     host_address = prefix + str(host)
     return host_address
 
@@ -452,12 +452,12 @@ def handle_communication(screen, start):
                 send_server_info(dh_address)
             sent_time2 = time.time()
 
-        #if (((time.time() - sent_time3) >= INTERVAL) and CONVERGENCE):  # After convergence, send HELLO
-        #    for DH in DHList:
-        #        dh_address = address_generator(DH[0])
-        #        send_hello(dh_address, sequenceNum)
-        #    sequenceNum = (sequenceNum + 1) % SEQ
-        #    sent_time3 = time.time()
+        if (((time.time() - sent_time3) >= INTERVAL) and CONVERGENCE):  # After convergence, send HELLO
+            for DH in DHList:
+                dh_address = address_generator(DH[0])
+                send_hello(dh_address, sequenceNum)
+            sequenceNum = (sequenceNum + 1) % SEQ
+            sent_time3 = time.time()
 
         #elif (((time.time() - sent_time) >= INTERVAL) and (not CONVERGENCE)):  # Before convergence, send UPDATE
         if (((time.time() - sent_time) >= INTERVAL) and (not CONVERGENCE)):  # Before convergence, send UPDATE
@@ -465,8 +465,8 @@ def handle_communication(screen, start):
                 dh_address = address_generator(DH_key)
                 send_update(dh_address)
             sent_time = time.time()
-            if (len(DSTList) == TOTAL_NODES - 1):  # if the nodes number is the length of destination list, then in convergence
-                CONVERGENCE == 1
+            if (len(DSTList) == (TOTAL_NODES - 1)):  # if the nodes number is the length of destination list, then in convergence
+                CONVERGENCE = 1
 
         # calculate the successive lost ACK from a DH, then check whether it is larger then the limitation of SUCCESSIVE_LOST
         #for DH_key in DHList:
@@ -561,19 +561,19 @@ def handle_communication(screen, start):
 
             # HELLO message, get sequence number from HELLO
             # send ACK with the sequence number back
-            #if (msg_type == MESSAGE_TYPE.HELLO):
-            #    print_screen(screen, CONTROL.UPDATE, "A hello message received from: " + "#" + str(STATUS.BLUE) + "[node " + str(direct_source_node) + "]")
-            #    seq_num = int(data[2])
-            #    dh_address = address_generator(direct_source_node)
-            #    reply_ack(dh_address, seq_num)
+            if (msg_type == MESSAGE_TYPE.HELLO):
+                print_screen(screen, CONTROL.UPDATE, "A hello message received from: " + "#" + str(STATUS.BLUE) + "[node " + str(direct_source_node) + "]")
+                seq_num = int(data[2])
+                dh_address = address_generator(direct_source_node)
+                reply_ack(dh_address, seq_num)
             #
             # ACK from DH, record the received sequence number
-            #if (msg_type == MESSAGE_TYPE.ACK):
-            #    seq_num = int(data[2])
-            #    for DH_key in DHList:
-            #        if (direct_source_node == DH):
-            #            DHList[DH_key][0] = seq_num
-            #            break
+            if (msg_type == MESSAGE_TYPE.ACK):
+                seq_num = int(data[2])
+                for DH_key in DHList:
+                    if (direct_source_node == DH):
+                        DHList[DH_key][0] = seq_num
+                        break
 
             # A triggered message from SOURCE -> SERVER, response to it via LED(GREEN) on the path
             # if I am not server, forward it according to routing table
