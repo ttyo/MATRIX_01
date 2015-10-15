@@ -38,8 +38,10 @@ PRINTABLE = map(ord, printable)
 def init():
     global PORT, UPDATE_INTERVAL, UPDATE_TIMEOUT, HELLO_INTERVAL, HELLO_TIMEOUT, SUCCESSIVE_LOST, HELLO_LOST, DATA_LOST
     global SUSPEND, INTERVAL
-    global SEQ, CONVERGENCE, BUFFER, SERVER_CONVERGENCE
+    global SEQ, CONVERGENCE, BUFFER, SERVER_CONVERGENCE, EVENT_DETECTED
     global SENSOR_TIMESTAMP
+    global GREEN_PIN, BLUE_PIN, RED_PIN, BUTTON_PIN
+    global LED_DELAY
 
     PORT = 55056  # for sending / listening table updates
     UPDATE_INTERVAL = 5
@@ -443,7 +445,7 @@ def roll_up_screen(screen):
 
 def address_generator(host):
     #prefix = "10.11.11."
-    prefix = "192.168.1."
+    prefix = "192.168.0."
     host_address = prefix + str(host)
     return host_address
 
@@ -484,7 +486,7 @@ def handle_communication(screen, start):
                 send_update(dh_address)
             sent_time = time.time()
             if (len(DSTList) == TOTAL_NODES - 1):  # if the nodes number is the length of destination list, then in convergence
-                CONVERGENCE == 1
+                CONVERGENCE = 1
 
         # calculate the successive lost ACK from a DH, then check whether it is larger then the limitation of SUCCESSIVE_LOST
         #for DH_key in DHList:
@@ -589,60 +591,65 @@ def handle_communication(screen, start):
             #if (msg_type == MESSAGE_TYPE.ACK):
             #    seq_num = int(data[2])
             #    for DH_key in DHList:
-            #        if (direct_source_node == DH):
+            #        if (direct_source_node == DH_key):
             #            DHList[DH_key][0] = seq_num
             #            break
 
             # A triggered message from SOURCE -> SERVER, response to it via LED(GREEN) on the path
             # if I am not server, forward it according to routing table
             # if I am the server, send Data ACK back to source node
-            #if (msg_type == MESSAGE_TYPE.DATA):
-            #    destination_node = int(data[2])
-            #    timestamp = float(data[3])
-            #    if (SERVER == HOST):  # if I am the server, recorde the timestamp, send to laptop, send ACK back to source node
-            #        for route_list in ROUTETable:
-            #            if (route_list[-1] == destination_node):
-            #                path_node = int(route_list[1])
-            #                path_address = address_generator(path_node)
-            #                reply_sensor_ack(path_address, destination_node, timestamp)
-            #                print_screen(screen, CONTROL.UPDATE, "A triggered message received from: " + "#" + str(STATUS.BLUE) + "[node " + str(destination_node) + "]")
-            #
-            #
-            #                ###### send to laptop #####
-            #
-            #
-            #                distance = len(route_list) - 1
-            #                tBlinkGreen = threading.Thread(target = blink_green, args = (distance))  # blink Green LED when server sends ACK
-            #                tBlinkGreen.start()
-            #                break
-            #    else:  # if I am not the server, forward it to the server according to routing table
-            #        source_node = destination_node
-            #        for route_list in ROUTETable:
-            #            if (route_list[-1] == SERVER):
-            #                path_node = int(route_list[1])
-            #                path_address = address_generator(path_node)
-            #                send_sensor_event(path_address, source_node, timestamp)
-            #                break;
+            if (msg_type == MESSAGE_TYPE.DATA):
+                destination_node = int(data[2])
+                timestamp = float(data[3])
+                if (SERVER == HOST):  # if I am the server, recorde the timestamp, send to laptop, send ACK back to source node
+                    for route_list in ROUTETable:
+                        if (route_list[-1] == destination_node):
+                            path_node = int(route_list[1])
+                            path_address = address_generator(path_node)
+                            reply_sensor_ack(path_address, destination_node, timestamp)
+                            print_screen(screen, CONTROL.UPDATE, "A triggered message received from: " + "#" + str(STATUS.BLUE) + "[node " + str(destination_node) + "]")
+
+
+                            ###### send to laptop #####
+
+
+                            tBlinkBlue = threading.Thread(target = blink_blue)  # blink Green LED when server sends ACK
+                            tBlinkBlue.start()
+                            break
+                else:  # if I am not the server, forward it to the server according to routing table, blink GREEN according to distance
+                    source_node = destination_node
+                    for route_list in ROUTETable:
+                        if (route_list[-1] == SERVER):
+                            path_node = int(route_list[1])
+                            path_address = address_generator(path_node)
+                            send_sensor_event(path_address, source_node, timestamp)
+                            distance = DSTList[SERVER]
+                            tBlinkGreen = threading.Thread(target = blink_green, args = (distance))  # blink Green LED when server sends ACK
+                            tBlinkGreen.start()
+                            break;
 
             # DataACK from SERVER -> SOURCE(DESTINATION), in here the LED(BLUE) will blink to it if local is destination
             # if I am not the destination, forward the ack to source node according to routing table
             # if I am the destination, terminate the transmission, blink LED
-            #if (msg_type == MESSAGE_TYPE.DATAACK):
-            #    destination_node = int(data[2])
-            #    timestamp = float(data[3])  # the timestamp of sending this packet
-            #    if (destination_node == HOST):  # if I am the destination
-            #        if (time.time() - timestamp <= INTERVAL):  # ACK is not late
-            #            print_screen(screen, CONTROL.UPDATE, "A triggered message ACK received from server: " + "#" + str(STATUS.BLUE) + "[node " + str(SERVER) + "]")
-            #        else:
-            #            print_screen(screen, CONTROL.WARNING, "#" + str(STATUS.RED) + "[An ACK to triggered message is delayed]")
-            #        tBlinkBlue = threading.Thread(target = blink_blue)
-            #        tBlinkBlue.start()
-            #    else:  # if I am not the destination, forward the message to destination according to routing table
-            #        for route_list in ROUTETable:
-            #            if (route_list[-1] == destination_node):
-            #                path_node = int(route_list[1])
-            #                path_address = address_generator(path_node)
-            #                reply_sensor_ack(path_address, destination_node, timestamp)
+            if (msg_type == MESSAGE_TYPE.DATAACK):
+                destination_node = int(data[2])
+                timestamp = float(data[3])  # the timestamp of sending this packet
+                if (destination_node == HOST):  # if I am the destination
+                    if (time.time() - timestamp <= INTERVAL):  # ACK is not late
+                        print_screen(screen, CONTROL.UPDATE, "A triggered message ACK received from server: " + "#" + str(STATUS.BLUE) + "[node " + str(SERVER) + "]")
+                        tBlinkBlue = threading.Thread(target = blink_blue)
+                        tBlinkBlue.start()
+                    else:
+                        print_screen(screen, CONTROL.WARNING, "#" + str(STATUS.RED) + "[An ACK to triggered message is delayed or lost]")
+                        tBlinkRed = threading.Thread(target = blink_red)
+                        tBlinkRed.start()
+
+                else:  # if I am not the destination, forward the message to destination according to routing table
+                    for route_list in ROUTETable:
+                        if (route_list[-1] == destination_node):
+                            path_node = int(route_list[1])
+                            path_address = address_generator(path_node)
+                            reply_sensor_ack(path_address, destination_node, timestamp)
 
         except socket.error:
             pass
