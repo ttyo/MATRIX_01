@@ -21,7 +21,6 @@ import ctypes
 import curses
 import curses.ascii
 import threading
-import RPi.GPIO as GPIO     #import Pi general-purpose input/output (GPIO) library
 from string import printable
 
 # From: http://stackoverflow.com/a/1695250/1800854
@@ -38,11 +37,8 @@ PRINTABLE = map(ord, printable)
 def init():
     global PORT, UPDATE_INTERVAL, UPDATE_TIMEOUT, HELLO_INTERVAL, HELLO_TIMEOUT, SUCCESSIVE_LOST, HELLO_LOST, DATA_LOST
     global SUSPEND, INTERVAL
-    global SEQ, CONVERGENCE, BUFFER, SERVER_CONVERGENCE, EVENT_DETECTED
+    global SEQ, CONVERGENCE, BUFFER, SERVER_CONVERGENCE
     global SENSOR_TIMESTAMP
-    global GREEN_PIN, BLUE_PIN, RED_PIN, BUTTON_PIN
-    global LED_DELAY
-
 
     PORT = 55056  # for sending / listening table updates
     UPDATE_INTERVAL = 5
@@ -58,29 +54,9 @@ def init():
     BUFFER = 1024
     HELLO_LOST = 4
     SENSOR_TIMESTAMP = 0.0
-    GREEN_PIN = 25
-    RED_PIN = 21
-    BLUE_PIN = 23
-    LED_DELAY = 0.5
-    BUTTON_PIN = 24
-    EVENT_DETECTED = 0
-
-    setUpPins()
 
     # The main function will runs in a new screen which can support customised commands
     curses.wrapper(main)
-
-
-def setUpPins():
-    GPIO.setmode(GPIO.BCM)
-    GPIO.setup(GREEN_PIN, GPIO.OUT)   # set up GPIO output channel
-    GPIO.setup(RED_PIN, GPIO.OUT)   # set up GPIO output channel
-    GPIO.setup(BLUE_PIN, GPIO.OUT)   # set up GPIO output channel
-
-    # Set up button for event detection
-    GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-    GPIO.add_event_detect(BUTTON_PIN, GPIO.FALLING, callback=eventCallback, bouncetime=300)
-
 
 
 # Main function will allow user to run customised command, e.g.:
@@ -243,7 +219,6 @@ def main(screen):
             print_screen(screen, CONTROL.NORMAL, "Local node is leaving network now.")
             screen.refresh()
             time.sleep(2.0)
-            GPIO.cleanup()
             break
 
         # functional commands
@@ -613,8 +588,8 @@ def handle_communication(screen, start):
                             path_address = address_generator(path_node)
                             reply_sensor_ack(path_address, destination_node, timestamp)
                             print_screen(screen, CONTROL.UPDATE, "A triggered message received from: " + "#" + str(STATUS.BLUE) + "[node " + str(destination_node) + "]")
-
-
+            #
+            #
             #                ###### send to laptop #####
             #
             #
@@ -622,7 +597,7 @@ def handle_communication(screen, start):
                             tBlinkGreen = threading.Thread(target = blink_green, args = (distance))  # blink Green LED when server sends ACK
                             tBlinkGreen.start()
                             break
-                else:  # if I am not the server, forward it to the server according to routing table
+            #    else:  # if I am not the server, forward it to the server according to routing table
                     source_node = destination_node
                     for route_list in ROUTETable:
                         if (route_list[-1] == SERVER):
@@ -758,30 +733,25 @@ def handle_route_update(received_table):
             ROUTETable.append(new_route_list)  # update the routing table
             DSTList.update({new_destination:new_distance})  # update the destination list
 
-def eventCallback(channel):
-    EVENT_DETECTED = 1
-
 
 # this function will monitor sensor, generate triggered packet while sensors being triggered
 def handle_sensor_event(screen, start):
     global SENSOR_TIMESTAMP
 
-    while True:
-        if (EVENT_DETECTED):
-            # when event happens
-            if (SERVER != 0):
-                timestamp = time.time()
-                SENSOR_TIMESTAMP = timestamp
-                for route_list in ROUTETable:
-                    if (route_list[-1] == SERVER):
-                        path_node = int(route_list[1])
-                        path_address = address_generator(path_node)
-                        send_sensor_event(path_address, HOST, timestamp)
-                        distance = len(route_list) - 1
-                        tBlinkGreen = threading.Thread(target = blink_green, args = (distance))  # blink the Green LED
-                        tBlinkGreen.start()
-                        EVENT_DETECTED = 0
-                        break;
+    if (not start):
+        # when event happens
+        if (SERVER != 0):
+            timestamp = time.time()
+            SENSOR_TIMESTAMP = timestamp
+            for route_list in ROUTETable:
+                if (route_list[-1] == SERVER):
+                    path_node = int(route_list[1])
+                    path_address = address_generator(path_node)
+                    send_sensor_event(path_address, HOST, timestamp)
+                    distance = len(route_list) - 1
+                    tBlinkGreen = threading.Thread(target = blink_green, args = (distance))  # blink the Green LED
+                    tBlinkGreen.start()
+                    break;
 
 
 
@@ -808,25 +778,17 @@ def config_ntp():
 
 # this function will blink blue LED in order to react to ACK of triggered message
 def blink_blue():
-    GPIO.output(BLUE_PIN, True)
-    time.sleep(LED_DELAY)
-    GPIO.output(BLUE_PIN, False)
+    print("")
 
 
 # this function will blink red LED in order to react to DH lost & packet lost (no ACK)
 def blink_red():
-    GPIO.output(RED_PIN, True)
-    time.sleep(LED_DELAY)
-    GPIO.output(RED_PIN, False)
+    print("")
 
 
 # this function will blink green LED in order to react to triggered message, the number of LED is based on distance
 def blink_green(distance):
-    for i in range(distance):
-        GPIO.output(GREEN_PIN, True)
-        time.sleep(LED_DELAY)
-        GPIO.output(GREEN_PIN, False)
-        time.sleep(LED_DELAY)
+    print("")
 
 
 
