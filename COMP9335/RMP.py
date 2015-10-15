@@ -453,8 +453,8 @@ def handle_communication(screen, start):
             sent_time2 = time.time()
 
         if (((time.time() - sent_time3) >= INTERVAL) and CONVERGENCE):  # After convergence, send HELLO
-            for DH in DHList:
-                dh_address = address_generator(DH[0])
+            for DH_key in DHList:
+                dh_address = address_generator(DH_key)
                 send_hello(dh_address, sequenceNum)
             sequenceNum = (sequenceNum + 1) % SEQ
             sent_time3 = time.time()
@@ -571,7 +571,7 @@ def handle_communication(screen, start):
             if (msg_type == MESSAGE_TYPE.ACK):
                 seq_num = int(data[2])
                 for DH_key in DHList:
-                    if (direct_source_node == DH):
+                    if (direct_source_node == DH_key):
                         DHList[DH_key][0] = seq_num
                         break
 
