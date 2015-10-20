@@ -569,8 +569,9 @@ def handle_communication(screen, start):
             # then pass it to another function
             if (msg_type == MESSAGE_TYPE.UPDATE and (not CONVERGENCE)):
                 del data[0]
-                debug = ''.join(data)
-                print_screen(screen, CONTROL.UPDATE, "A routing table update received from: " + "#" + str(STATUS.BLUE) + "[node " + str(debug) + "]")
+                #debug = ''.join(data)
+                #print_screen(screen, CONTROL.UPDATE, "A routing table update received from: " + "#" + str(STATUS.BLUE) + "[node " + str(debug) + "]")
+                print_screen(screen, CONTROL.UPDATE, "A routing table update received from: " + "#" + str(STATUS.BLUE) + "[node " + str(direct_source_node) + "]")
                 received_table = []
                 temp_list = []
                 #for identifier in data:
