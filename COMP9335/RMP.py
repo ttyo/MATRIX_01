@@ -450,7 +450,7 @@ def roll_up_screen(screen):
 
 def address_generator(host):
     #prefix = "10.11.11."
-    prefix = "192.168.0."
+    prefix = "192.168.1."
     host_address = prefix + str(host)
     return host_address
 
@@ -630,8 +630,8 @@ def handle_communication(screen, start):
                             path_node = int(route_list[1])
                             path_address = address_generator(path_node)
                             send_sensor_event(path_address, source_node, timestamp)
-                            tBlinkGreen = threading.Thread(target = blink_green, args = (distance,))  # blink Green LED when server sends ACK
-                            tBlinkGreen.start()
+                            tBlinkRed = threading.Thread(target = blink_red)  # blink Green LED when server sends ACK
+                            tBlinkRed.start()
                             break;
 
             # DataACK from SERVER -> SOURCE(DESTINATION), in here the LED(BLUE) will blink to it if local is destination
