@@ -577,22 +577,17 @@ def handle_communication(screen, start):
                 while (len(data) > 0):
                     #direct_source_node = int(identifier)
                     identifier = data.pop(0)
-                    print_screen(screen, CONTROL.UPDATE, "identifier: " + identifier)
                     temp_list.append(int(identifier))
                     #if (data.index(identifier) < len(data) - 1):
                     if (len(data) > 0):
                         #if (int(data[data.index(identifier) + 1]) == direct_source_node):  # received data is like: 6 4 6 1 4 6 5 6 1 2 3
                         if (int(data[0]) == direct_source_node): # Check if the next node is the source node. That means that this path description is finished, so appendit
                             received_table.append(temp_list)
-                            print_screen(screen, CONTROL.UPDATE, "append1")
                             temp_list = []
                     #elif (data.index(identifier) == len(data) - 1):  # comes to the last elements
                     else: #The node we just popped was the last node
                             received_table.append(temp_list)
-                            print_screen(screen, CONTROL.UPDATE, "append1")
                             temp_list = []
-                for tList in received_table:
-                    print_screen(screen, CONTROL.UPDATE, "Temp List: " + str(tList))
                 handle_route_update(received_table)
 
             # HELLO message, get sequence number from HELLO
