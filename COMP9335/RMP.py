@@ -40,10 +40,8 @@ def init():
     global PORT, UPDATE_INTERVAL, UPDATE_TIMEOUT, HELLO_INTERVAL, HELLO_TIMEOUT, SUCCESSIVE_LOST, HELLO_LOST, DATA_LOST
     global SUSPEND, INTERVAL
     global SEQ, CONVERGENCE, BUFFER, SERVER_CONVERGENCE, EVENT_DETECTED
-    global SENSOR_TIMESTAMP
     global GREEN_PIN, BLUE_PIN, RED_PIN, BUTTON_PIN, PIR_PIN
     global LED_DELAY
-
 
     PORT = 55056  # for sending / listening table updates
     UPDATE_INTERVAL = 5
@@ -58,12 +56,10 @@ def init():
     SERVER_CONVERGENCE = 0
     BUFFER = 1024
     HELLO_LOST = 4
-    SENSOR_TIMESTAMP = 0.0
     GREEN_PIN = 25
     RED_PIN = 21
     BLUE_PIN = 23
     LED_DELAY = 0.5
-    #BUTTON_PIN = 24
     PIR_PIN = 16
     EVENT_DETECTED = 0
 
@@ -91,12 +87,12 @@ def setUpPins():
 def main(screen):
     global history, window_size, HOST, HOST_ADDRESS
     global DHList, ROUTETable, DSTList
-    global TOTAL_NODES, SERVER, GATEWAY, SERVER_CONVERGENCE, NTP_ADDRESS, LAPTOP_ADD
+    global TOTAL_NODES, SERVER, GATEWAY, SERVER_CONVERGENCE, LAPTOP_ADD
 
     TOTAL_NODES = 0
     SERVER = 0
-    GATEWAY = "10.11.11.100"
-    LAPTOP_ADD = "192.168.1.100"
+    #GATEWAY = "10.11.11.100"
+    LAPTOP_ADD = "192.168.1.106"
     DHList = {}  # neighbour list
     ROUTETable = []  # routing table, contains routing list
     DSTList = {}  # destination list
@@ -126,22 +122,19 @@ def main(screen):
     print_screen(screen, CONTROL.NORMAL, "3. Designate local node as server, this will flood server info")
     print_screen(screen, CONTROL.NORMAL, "to all the other nodes, or use command [#" + str(STATUS.COMMAND) + "[done]] to skip:")
     print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[server]]")
-    print_screen(screen, CONTROL.NORMAL, "4. Designate NTP server: ")
-    print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[ntp (ntp_server_ip_address)]]")
 
     network_configured = 0
     node_configured = 0
     display_type = 0
     done = 0
-    ntp = 0
     while True:
         command = stdin_to_command(screen, height, display_type)
 
-        if (network_configured and node_configured and done and ntp):
+        if (network_configured and node_configured and done):
             display_type = 1
             break
         elif (command.startswith("node") or command.startswith("network") or command.startswith("server")
-              or command.startswith("done") or command.startswith("ntp")):
+              or command.startswith("done")):
             if (command.startswith("network")):  # record the total number of nodes
                 try:
                     parameter = int(command.split()[1])
@@ -181,16 +174,6 @@ def main(screen):
             elif (command == "done"):
                 done = 1
                 print_screen(screen, CONTROL.NORMAL, "Command: " + "#" + str(STATUS.COMMAND) + "[" + command + "]")
-            elif (command.startswith("ntp")):
-                try:
-                    parameter = command.split()[1]
-                    print_screen(screen, CONTROL.NORMAL, "Command: " + "#" + str(STATUS.COMMAND) + "[" + command + "]")
-                    NTP_ADDRESS = parameter
-                    config_ntp()
-                    ntp = 1
-                except:
-                    print_screen(screen, CONTROL.ERROR, "Invalid parameter(s) in command: " + "#" + str(STATUS.YELLOW) + "[" + command + "]")
-                    continue
 
         elif (command == ''):
             print_screen(screen, CONTROL.NORMAL, "")
@@ -216,7 +199,6 @@ def main(screen):
 
     print_screen(screen, CONTROL.NORMAL, "Local identifier: " + "#" + str(STATUS.BLUE) + "[" + str(HOST) + "]")
     print_screen(screen, CONTROL.NORMAL, "Local ip address: " + "#" + str(STATUS.BLUE) + "[" + HOST_ADDRESS + "]")
-    print_screen(screen, CONTROL.NORMAL, "NTP server: " + "#" + str(STATUS.BLUE) + "[" + NTP_ADDRESS + "]")
     print_screen(screen, CONTROL.NORMAL, "")
     print_screen(screen, CONTROL.NORMAL, "Tips:")
     print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[show routingtable]] will display the current routing table.")
@@ -306,7 +288,6 @@ def main(screen):
                     print_screen(screen, CONTROL.NORMAL, "RMP pre-alpha, version 0.6")
                     print_screen(screen, CONTROL.NORMAL, "Local identifier: " + "#" + str(STATUS.BLUE) + "[" + str(HOST) + "]")
                     print_screen(screen, CONTROL.NORMAL, "Local ip address: " + "#" + str(STATUS.BLUE) + "[" + HOST_ADDRESS + "]")
-                    print_screen(screen, CONTROL.NORMAL, "NTP server: " + "#" + str(STATUS.BLUE) + "[" + NTP_ADDRESS + "]")
 
                 else:
                     print_screen (screen, CONTROL.ERROR, "Unknown \"show\" parameter(s): " + "#" + str(STATUS.YELLOW) + "[" + parameter + "]")
@@ -478,14 +459,13 @@ def handle_communication(screen, start):
                 send_server_info(dh_address)
             sent_time2 = time.time()
 
-        if (((time.time() - sent_time3) >= INTERVAL) and CONVERGENCE):  # After convergence, send HELLO
-            for DH_key in DHList:
-                dh_address = address_generator(DH_key)
-                send_hello(dh_address, sequenceNum)
-            sequenceNum = (sequenceNum + 1) % SEQ
-            sent_time3 = time.time()
+        #if (((time.time() - sent_time3) >= INTERVAL) and CONVERGENCE):  # After convergence, send HELLO
+        #    for DH_key in DHList:
+        #        dh_address = address_generator(DH_key)
+        #        send_hello(dh_address, sequenceNum)
+        #    sequenceNum = (sequenceNum + 1) % SEQ
+        #    sent_time3 = time.time()
 
-        #elif (((time.time() - sent_time) >= INTERVAL) and (not CONVERGENCE)):  # Before convergence, send UPDATE
         if (((time.time() - sent_time) >= INTERVAL) and (not CONVERGENCE)):  # Before convergence, send UPDATE
             for DH_key in DHList:
                 dh_address = address_generator(DH_key)
@@ -594,19 +574,19 @@ def handle_communication(screen, start):
 
             # HELLO message, get sequence number from HELLO
             # send ACK with the sequence number back
-            if (msg_type == MESSAGE_TYPE.HELLO):
-                print_screen(screen, CONTROL.UPDATE, "A hello message received from: " + "#" + str(STATUS.BLUE) + "[node " + str(direct_source_node) + "]")
-                seq_num = int(data[2])
-                dh_address = address_generator(direct_source_node)
-                reply_ack(dh_address, seq_num)
+            #if (msg_type == MESSAGE_TYPE.HELLO):
+            #    print_screen(screen, CONTROL.UPDATE, "A hello message received from: " + "#" + str(STATUS.BLUE) + "[node " + str(direct_source_node) + "]")
+            #    seq_num = int(data[2])
+            #    dh_address = address_generator(direct_source_node)
+            #    reply_ack(dh_address, seq_num)
             #
             # ACK from DH, record the received sequence number
-            if (msg_type == MESSAGE_TYPE.ACK):
-                seq_num = int(data[2])
-                for DH_key in DHList:
-                    if (direct_source_node == DH_key):
-                        DHList[DH_key][0] = seq_num
-                        break
+            #if (msg_type == MESSAGE_TYPE.ACK):
+            #    seq_num = int(data[2])
+            #    for DH_key in DHList:
+            #        if (direct_source_node == DH_key):
+            #            DHList[DH_key][0] = seq_num
+            #            break
 
             # A triggered message from SOURCE -> SERVER, response to it via LED(GREEN) on the path
             # if I am not server, forward it according to routing table
@@ -629,12 +609,11 @@ def handle_communication(screen, start):
                                 print_screen(screen, CONTROL.UPDATE, "Object stops moving or steps out of the range of node " + node_color)
                                 message = str(MESSAGE_TYPE.DATA_OUT)
 
-            #               ###### send to laptop #####
-                            message = message + ' ' + str(SERVER)
+                            ###### send to laptop #####
+                            message = message + ' ' + str(destination_node) + timestamp
                             socket_s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                             socket_s.settimeout(UPDATE_TIMEOUT)
                             socket_s.sendto(message, (LAPTOP_ADD, PORT))
-            #               ###### send to laptop #####
     
                             distance = len(route_list) - 1
                             tBlinkGreen = threading.Thread(target = blink_green, args = (distance,))  # blink Green LED when server sends ACK
@@ -646,7 +625,7 @@ def handle_communication(screen, start):
                         if (route_list[-1] == SERVER):
                             path_node = int(route_list[1])
                             path_address = address_generator(path_node)
-                            send_sensor_event(path_address, source_node, timestamp)
+                            send_sensor_event(path_address, source_node, timestamp, msg_type)
                             tBlinkRed = threading.Thread(target = blink_red)  # blink Green LED when server sends ACK
                             tBlinkRed.start()
                             break;
@@ -759,7 +738,7 @@ def send_sensor_event(path_address, source_node, timestamp, type):
 # this function will do replying the triggered message, SERVER -> DESTINATION
 def reply_sensor_ack(path_address, destination_node, timestamp):
     message = str(MESSAGE_TYPE.DATAACK)
-    message = message + ' ' + str(HOST) + ' ' + str(destination_node) + ' ' + str(timestamp)
+    message = message + ' ' + str(HOST) + ' ' + str(destination_node) + ' ' + timestamp
 
     # Send UDP datagram
     socket_s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -787,38 +766,17 @@ def eventCallback(channel):
     EVENT_DETECTED = 1
 
 
-# this function will monitor sensor, generate triggered packet while sensors being triggered
-#def handle_sensor_event(screen, start):
-#    global SENSOR_TIMESTAMP,EVENT_DETECTED, SERVER
-#
-#    while True:
-#        if (EVENT_DETECTED):
-#            # when event happens
-#            #print_screen(screen, CONTROL.NORMAL, "Got here")
-#            if (SERVER):
-#                timestamp = time.time()
-#                SENSOR_TIMESTAMP = timestamp
-#                for route_list in ROUTETable:
-#                    if (route_list[-1] == SERVER):
-#                        path_node = int(route_list[1])
-#                        path_address = address_generator(path_node)
-#                        send_sensor_event(path_address, HOST, timestamp)
-#                        distance = len(route_list) - 1
-#                        tBlinkGreen = threading.Thread(target = blink_green, args = (distance, ))  # blink the Green LED
-#                        tBlinkGreen.start()
-#                        EVENT_DETECTED = 0
-#                        break;
-
 def handle_sensor_event(screen, start):
+    global EVENT_DETECTED, SERVER
     while True:
-        if (EVENT_DETECTED):
+        if (EVENT_DETECTED):  # waiting for event detection signal
             if GPIO.input(PIR_PIN):  # signal from 0 -> 1, node being triggered
                 time0t1 = datetime.datetime.now()
                 node_color = "#" + str(STATUS.YELLOW) + "[" + str(HOST) + "]"
                 time_color = "#" + str(STATUS.YELLOW) + "[" + str(time0t1.replace(microsecond=0)) + "]"
                 string = "Object is within detection range of node " + node_color + " since " + time_color
                 print_screen(screen, CONTROL.UPDATE, string)
-                if (SERVER):  # if local node knows the server, send triggered message with timestamp to server
+                if (SERVER and SERVER != HOST):  # if local node knows the server, send triggered message with timestamp to server
                     timestamp = str(time0t1.replace(microsecond=0))
                     for route_list in ROUTETable:  # find the routing path
                         if (route_list[-1] == SERVER):
@@ -830,14 +788,19 @@ def handle_sensor_event(screen, start):
                             tBlinkGreen.start()
                             EVENT_DETECTED = 0
                             break
+                elif (SERVER == HOST):  # if local node is the server, send the message to laptop directly
+                    message = str(MESSAGE_TYPE.DATA_IN) + ' ' + str(SERVER) + ' ' + timestamp
+                    socket_s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                    socket_s.settimeout(UPDATE_TIMEOUT)
+                    socket_s.sendto(message, (LAPTOP_ADD, PORT))
 
-            else:  # signal form 1 -> 0, object is leaving
+            else:  # signal form 1 -> 0, object is leaving or keeping still
                 time1t0 = datetime.datetime.now()
                 node_color = "#" + str(STATUS.YELLOW) + "[" + str(HOST) + "]"
                 time_color = "#" + str(STATUS.YELLOW) + "[" + str(time1t0.replace(microsecond=0)) + "]"
                 string = "Object stops moving or step out of the detection range of node " + node_color + " since " + time_color
                 print_screen(screen, CONTROL.UPDATE, string)
-                if (SERVER):  # if local node knows the server, notify server that the object is no longer sensed
+                if (SERVER and SERVER != HOST):  # if local node knows the server, notify server that the object is no longer sensed
                     timestamp = str(time1t0.replace(microsecond=0))
                     for route_list in ROUTETable:
                         if (route_list[-1] == SERVER):
@@ -849,31 +812,11 @@ def handle_sensor_event(screen, start):
                             tBlinkGreen.start()
                             EVENT_DETECTED = 0
                             break
-
-
-
-
-
-
-
-
-
-def config_ntp():
-
-   a = 1
-
-
-
-
-
-
-
-
-
-
-
-
-
+                elif (SERVER == HOST):  # if local node is the server
+                    message = str(MESSAGE_TYPE.DATA_OUT) + ' ' + str(SERVER) + ' ' + timestamp
+                    socket_s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                    socket_s.settimeout(UPDATE_TIMEOUT)
+                    socket_s.sendto(message, (LAPTOP_ADD, PORT))
 
 
 # this function will blink blue LED in order to react to ACK of triggered message
@@ -899,9 +842,5 @@ def blink_green(distance):
         time.sleep(LED_DELAY)
 
 
-
 if __name__ == "__main__":
     init()
-
-
-
