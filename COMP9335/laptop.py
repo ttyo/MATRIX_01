@@ -2,7 +2,7 @@ import sys
 import time
 import socket
 
-HOST_ADDRESS = "192.168.1.x"
+HOST_ADDRESS = "192.168.1.106"
 PORT = 55056
 UPDATE_TIMEOUT = 15
 BUFFER = 1024
