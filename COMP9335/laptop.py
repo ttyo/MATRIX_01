@@ -1,6 +1,14 @@
+import sys
+import time
+import socket
+
+HOST_ADDRESS = "192.168.1.x"
+PORT = 55056
+UPDATE_TIMEOUT = 15
+BUFFER = 1024
+
 socket_l = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 socket_l.settimeout(UPDATE_TIMEOUT)
-print_screen(screen, CONTROL.NORMAL, "Host: " + HOST_ADDRESS);
 socket_l.bind((HOST_ADDRESS, PORT))
 while True:
     try:
