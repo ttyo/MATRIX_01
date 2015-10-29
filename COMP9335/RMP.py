@@ -91,11 +91,12 @@ def setUpPins():
 def main(screen):
     global history, window_size, HOST, HOST_ADDRESS
     global DHList, ROUTETable, DSTList
-    global TOTAL_NODES, SERVER, GATEWAY, SERVER_CONVERGENCE, NTP_ADDRESS
+    global TOTAL_NODES, SERVER, GATEWAY, SERVER_CONVERGENCE, NTP_ADDRESS, LAPTOP
 
     TOTAL_NODES = 0
     SERVER = 0
     GATEWAY = "10.11.11.100"
+    LAPTOP = "192.168.1.x"
     DHList = {}  # neighbour list
     ROUTETable = []  # routing table, contains routing list
     DSTList = {}  # destination list
@@ -621,10 +622,14 @@ def handle_communication(screen, start):
                             reply_sensor_ack(path_address, destination_node, timestamp)
                             print_screen(screen, CONTROL.UPDATE, "A triggered message received from: " + "#" + str(STATUS.BLUE) + "[node " + str(destination_node) + "]")
 
-
-            #                ###### send to laptop #####
-            #
-            #
+            #               ###### send to laptop #####
+                            message = str(MESSAGE_TYPE.DATA)
+                            message = message + ' ' + str(SERVER)
+                            socket_s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                            socket_s.settimeout(UPDATE_TIMEOUT)
+                            socket_s.sendto(message, (LAPTOP, PORT))
+            #               ###### send to laptop #####
+    
                             distance = len(route_list) - 1
                             tBlinkGreen = threading.Thread(target = blink_green, args = (distance,))  # blink Green LED when server sends ACK
                             tBlinkGreen.start()
