@@ -23,6 +23,7 @@ import curses.ascii
 import threading
 import RPi.GPIO as GPIO     #import Pi general-purpose input/output (GPIO) library
 from string import printable
+import datetime
 
 # From: http://stackoverflow.com/a/1695250/1800854
 def enum(**enums):
@@ -31,7 +32,7 @@ def enum(**enums):
 STATUS = enum(NORMAL = 1, WARNING = 2, COMMAND = 3, RED = 4, GREEN = 5, ERROR = 6, YELLOW = 7, BLUE = 8, RESULT = 9)
 PEER_STATUS = enum(OK = 1, INVALID = 2, DEAD = 3)
 CONTROL = enum(NORMAL = 1, WARNING = 2, UPDATE = 3, HELLO = 4, ERROR = 5, RESULT = 6)
-MESSAGE_TYPE = enum(UPDATE = 1, HELLO = 2, ACK = 3, DATA = 4, DATAACK = 5, SERVER = 6, SERVERACK = 7)
+MESSAGE_TYPE = enum(UPDATE = 1, HELLO = 2, ACK = 3, SERVERACK = 4, DATAACK = 5, SERVER = 6, DATA_IN = 7, DATA_OUT = 8)
 PRINTABLE = map(ord, printable)
 
 # Initiate the program
@@ -40,7 +41,7 @@ def init():
     global SUSPEND, INTERVAL
     global SEQ, CONVERGENCE, BUFFER, SERVER_CONVERGENCE, EVENT_DETECTED
     global SENSOR_TIMESTAMP
-    global GREEN_PIN, BLUE_PIN, RED_PIN, BUTTON_PIN
+    global GREEN_PIN, BLUE_PIN, RED_PIN, BUTTON_PIN, PIR_PIN
     global LED_DELAY
 
 
@@ -62,7 +63,8 @@ def init():
     RED_PIN = 21
     BLUE_PIN = 23
     LED_DELAY = 0.5
-    BUTTON_PIN = 24
+    #BUTTON_PIN = 24
+    PIR_PIN = 16
     EVENT_DETECTED = 0
 
     setUpPins()
@@ -76,11 +78,9 @@ def setUpPins():
     GPIO.setup(GREEN_PIN, GPIO.OUT)   # set up GPIO output channel
     GPIO.setup(RED_PIN, GPIO.OUT)   # set up GPIO output channel
     GPIO.setup(BLUE_PIN, GPIO.OUT)   # set up GPIO output channel
+    GPIO.setup(PIR_PIN, GPIO.IN)  # setup GPIO 16 as INPUT
 
-    # Set up button for event detection
-    GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-    GPIO.add_event_detect(BUTTON_PIN, GPIO.FALLING, callback=eventCallback, bouncetime=300)
-
+    GPIO.add_event_detect(PIR_PIN, GPIO.BOTH, callback = eventCallback, bouncetime = 300)
 
 
 # Main function will allow user to run customised command, e.g.:
@@ -91,12 +91,12 @@ def setUpPins():
 def main(screen):
     global history, window_size, HOST, HOST_ADDRESS
     global DHList, ROUTETable, DSTList
-    global TOTAL_NODES, SERVER, GATEWAY, SERVER_CONVERGENCE, NTP_ADDRESS, LAPTOP
+    global TOTAL_NODES, SERVER, GATEWAY, SERVER_CONVERGENCE, NTP_ADDRESS, LAPTOP_ADD
 
     TOTAL_NODES = 0
     SERVER = 0
     GATEWAY = "10.11.11.100"
-    LAPTOP = "192.168.1.x"
+    LAPTOP_ADD = "192.168.1.100"
     DHList = {}  # neighbour list
     ROUTETable = []  # routing table, contains routing list
     DSTList = {}  # destination list
@@ -611,23 +611,29 @@ def handle_communication(screen, start):
             # A triggered message from SOURCE -> SERVER, response to it via LED(GREEN) on the path
             # if I am not server, forward it according to routing table
             # if I am the server, send Data ACK back to source node
-            if (msg_type == MESSAGE_TYPE.DATA):
+            if (msg_type == MESSAGE_TYPE.DATA_IN or msg_type == MESSAGE_TYPE.DATA_OUT):
                 destination_node = int(data[2])
-                timestamp = float(data[3])
+                timestamp = data[3]
                 if (SERVER == HOST):  # if I am the server, recorde the timestamp, send to laptop, send ACK back to source node
                     for route_list in ROUTETable:
-                        if (route_list[-1] == destination_node):
+                        if (route_list[-1] == destination_node):  # find the routing path
                             path_node = int(route_list[1])
                             path_address = address_generator(path_node)
                             reply_sensor_ack(path_address, destination_node, timestamp)
-                            print_screen(screen, CONTROL.UPDATE, "A triggered message received from: " + "#" + str(STATUS.BLUE) + "[node " + str(destination_node) + "]")
+                            node_color = "#" + str(STATUS.BLUE) + "[node " + str(destination_node) + "]"
+                            message = ''
+                            if (msg_type == MESSAGE_TYPE.DATA_IN):
+                                print_screen(screen, CONTROL.UPDATE, "Object is in the range of node " + node_color)
+                                message = str(MESSAGE_TYPE.DATA_IN)
+                            elif (msg_type == MESSAGE_TYPE.DATA_OUT):
+                                print_screen(screen, CONTROL.UPDATE, "Object stops moving or steps out of the range of node " + node_color)
+                                message = str(MESSAGE_TYPE.DATA_OUT)
 
             #               ###### send to laptop #####
-                            message = str(MESSAGE_TYPE.DATA)
                             message = message + ' ' + str(SERVER)
                             socket_s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                             socket_s.settimeout(UPDATE_TIMEOUT)
-                            socket_s.sendto(message, (LAPTOP, PORT))
+                            socket_s.sendto(message, (LAPTOP_ADD, PORT))
             #               ###### send to laptop #####
     
                             distance = len(route_list) - 1
@@ -736,9 +742,13 @@ def reply_server(path_address, source_node):
 
 
 # this function will generate triggered message to server, including timestamp, SOURCE -> SERVER
-def send_sensor_event(path_address, source_node, timestamp):
-    message = str(MESSAGE_TYPE.DATA)
-    message = message + ' ' + str(HOST) + ' ' + str(source_node) + ' ' + str(timestamp)
+def send_sensor_event(path_address, source_node, timestamp, type):
+    if (type == MESSAGE_TYPE.DATA_IN):
+        message = str(MESSAGE_TYPE.DATA_IN)
+        message = message + ' ' + str(HOST) + ' ' + str(source_node) + ' ' + timestamp
+    elif (type == MESSAGE_TYPE.DATA_OUT):
+        message = str(MESSAGE_TYPE.DATA_OUT)
+        message = message + ' ' + str(HOST) + ' ' + str(source_node) + ' ' + timestamp
 
     # Send UDP datagram
     socket_s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -778,26 +788,70 @@ def eventCallback(channel):
 
 
 # this function will monitor sensor, generate triggered packet while sensors being triggered
-def handle_sensor_event(screen, start):
-    global SENSOR_TIMESTAMP,EVENT_DETECTED, SERVER
+#def handle_sensor_event(screen, start):
+#    global SENSOR_TIMESTAMP,EVENT_DETECTED, SERVER
+#
+#    while True:
+#        if (EVENT_DETECTED):
+#            # when event happens
+#            #print_screen(screen, CONTROL.NORMAL, "Got here")
+#            if (SERVER):
+#                timestamp = time.time()
+#                SENSOR_TIMESTAMP = timestamp
+#                for route_list in ROUTETable:
+#                    if (route_list[-1] == SERVER):
+#                        path_node = int(route_list[1])
+#                        path_address = address_generator(path_node)
+#                        send_sensor_event(path_address, HOST, timestamp)
+#                        distance = len(route_list) - 1
+#                        tBlinkGreen = threading.Thread(target = blink_green, args = (distance, ))  # blink the Green LED
+#                        tBlinkGreen.start()
+#                        EVENT_DETECTED = 0
+#                        break;
 
+def handle_sensor_event(screen, start):
     while True:
         if (EVENT_DETECTED):
-            # when event happens
-            #print_screen(screen, CONTROL.NORMAL, "Got here")
-            if (SERVER):
-                timestamp = time.time()
-                SENSOR_TIMESTAMP = timestamp
-                for route_list in ROUTETable:
-                    if (route_list[-1] == SERVER):
-                        path_node = int(route_list[1])
-                        path_address = address_generator(path_node)
-                        send_sensor_event(path_address, HOST, timestamp)
-                        distance = len(route_list) - 1
-                        tBlinkGreen = threading.Thread(target = blink_green, args = (distance, ))  # blink the Green LED
-                        tBlinkGreen.start()
-                        EVENT_DETECTED = 0
-                        break;
+            if GPIO.input(PIR_PIN):  # signal from 0 -> 1, node being triggered
+                time0t1 = datetime.datetime.now()
+                node_color = "#" + str(STATUS.YELLOW) + "[" + str(HOST) + "]"
+                time_color = "#" + str(STATUS.YELLOW) + "[" + str(time0t1.replace(microsecond=0)) + "]"
+                string = "Object is within detection range of node " + node_color + " since " + time_color
+                print_screen(screen, CONTROL.UPDATE, string)
+                if (SERVER):  # if local node knows the server, send triggered message with timestamp to server
+                    timestamp = str(time0t1.replace(microsecond=0))
+                    for route_list in ROUTETable:  # find the routing path
+                        if (route_list[-1] == SERVER):
+                            path_node = int(route_list[1])
+                            path_address = address_generator(path_node)
+                            send_sensor_event(path_address, HOST, timestamp, MESSAGE_TYPE.DATA_IN)
+                            distance = len(route_list) - 1
+                            tBlinkGreen = threading.Thread(target = blink_green, args = (distance, ))  # blink the Green LED
+                            tBlinkGreen.start()
+                            EVENT_DETECTED = 0
+                            break
+
+            else:  # signal form 1 -> 0, object is leaving
+                time1t0 = datetime.datetime.now()
+                node_color = "#" + str(STATUS.YELLOW) + "[" + str(HOST) + "]"
+                time_color = "#" + str(STATUS.YELLOW) + "[" + str(time1t0.replace(microsecond=0)) + "]"
+                string = "Object stops moving or step out of the detection range of node " + node_color + " since " + time_color
+                print_screen(screen, CONTROL.UPDATE, string)
+                if (SERVER):  # if local node knows the server, notify server that the object is no longer sensed
+                    timestamp = str(time1t0.replace(microsecond=0))
+                    for route_list in ROUTETable:
+                        if (route_list[-1] == SERVER):
+                            path_node = int(route_list[1])
+                            path_address = address_generator(path_node)
+                            send_sensor_event(path_address, HOST, timestamp, MESSAGE_TYPE.DATA_OUT)
+                            distance = len(route_list) - 1
+                            tBlinkGreen = threading.Thread(target = blink_green, args = (distance, ))  # blink the Green LED
+                            tBlinkGreen.start()
+                            EVENT_DETECTED = 0
+                            break
+
+
+
 
 
 
@@ -848,3 +902,6 @@ def blink_green(distance):
 
 if __name__ == "__main__":
     init()
+
+
+
