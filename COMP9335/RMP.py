@@ -61,12 +61,11 @@ def init():
     PIR_PIN = 16
     EVENT_DETECTED = 0
 
-    setUpPins()
     # The main function will runs in a new screen which can support customised commands
     curses.wrapper(main)
 
 
-def setUpPins():
+def set_up_pins():
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(GREEN_PIN, GPIO.OUT)   # set up GPIO output channel
     GPIO.setup(RED_PIN, GPIO.OUT)   # set up GPIO output channel
@@ -74,6 +73,8 @@ def setUpPins():
     GPIO.setup(PIR_PIN, GPIO.IN)  # setup GPIO 16 as INPUT
 
     GPIO.add_event_detect(PIR_PIN, GPIO.BOTH, callback = eventCallback)
+    while True:
+        time.sleep(100)
 
 
 def main(screen):
@@ -187,6 +188,8 @@ def main(screen):
     tHandleSensorEvent = threading.Thread(target = handle_sensor_event, args = (screen, 1))
     tHandleSensorEvent.start()
     print_screen(screen, CONTROL.NORMAL, "Sensor module starting ...")
+    tSetUpPins = threading.Thread(target = set_up_pins())
+    tSetUpPins.start()
 
     print_screen(screen, CONTROL.NORMAL, "Local identifier: " + "#" + str(STATUS.BLUE) + "[" + str(HOST) + "]")
     print_screen(screen, CONTROL.NORMAL, "Local ip address: " + "#" + str(STATUS.BLUE) + "[" + HOST_ADDRESS + "]")
@@ -213,6 +216,8 @@ def main(screen):
                 terminate(tHandleSensorEvent)
             if (tHandleUdpAll.isAlive()):
                 terminate(tHandleUdpAll)
+            if (tSetUpPins.isAlive()):
+                terminate(tSetUpPins)
 
             print_screen(screen, CONTROL.NORMAL, "Local node is leaving network now.")
             screen.refresh()
@@ -753,6 +758,7 @@ def handle_route_update(received_table):
             new_distance = len(new_route_list) - 1
             ROUTETable.append(new_route_list)  # update the routing table
             DSTList.update({new_destination:new_distance})  # update the destination list
+
 
 def eventCallback(channel):
     global EVENT_DETECTED
