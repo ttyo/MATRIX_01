@@ -61,6 +61,7 @@ def init():
     PIR_PIN = 16
     EVENT_DETECTED = 0
 
+    setUpPins()
     # The main function will runs in a new screen which can support customised commands
     curses.wrapper(main)
 
@@ -72,9 +73,7 @@ def set_up_pins():
     GPIO.setup(BLUE_PIN, GPIO.OUT)   # set up GPIO output channel
     GPIO.setup(PIR_PIN, GPIO.IN)  # setup GPIO 16 as INPUT
 
-    GPIO.add_event_detect(PIR_PIN, GPIO.BOTH, callback = event_call_back)
-    while True:
-        time.sleep(100)
+    GPIO.add_event_detect(PIR_PIN, GPIO.BOTH, callback = event_call_back, bouncetime = 300)
 
 
 def main(screen):
@@ -588,13 +587,14 @@ def handle_communication(screen, start):
             # if I am the server, send Data ACK back to source node
             if (msg_type == MESSAGE_TYPE.DATA_IN or msg_type == MESSAGE_TYPE.DATA_OUT):
                 destination_node = int(data[2])
-                timestamp = data[3]
+                timestamp_string = data[3]
+                timestamp_float = float(data[4])
                 if (SERVER == HOST):  # if I am the server, recorde the timestamp, send to laptop, send ACK back to source node
                     for route_list in ROUTETable:
                         if (route_list[-1] == destination_node):  # find the routing path
                             path_node = int(route_list[1])
                             path_address = address_generator(path_node)
-                            reply_sensor_ack(path_address, destination_node, timestamp)
+                            reply_sensor_ack(path_address, destination_node, timestamp_float)
                             node_color = "#" + str(STATUS.BLUE) + "[node " + str(destination_node) + "]"
                             message = ''
                             if (msg_type == MESSAGE_TYPE.DATA_IN):
@@ -605,7 +605,7 @@ def handle_communication(screen, start):
                                 message = str(MESSAGE_TYPE.DATA_OUT)
 
                             # server will also resend the message to laptop
-                            message = message + ' ' + str(SERVER) + str(destination_node) + timestamp
+                            message = message + ' ' + str(SERVER) + str(destination_node) + timestamp_string
                             socket_s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                             socket_s.settimeout(UPDATE_TIMEOUT)
                             socket_s.sendto(message, (LAPTOP_ADD, PORT))
@@ -620,7 +620,7 @@ def handle_communication(screen, start):
                         if (route_list[-1] == SERVER):
                             path_node = int(route_list[1])
                             path_address = address_generator(path_node)
-                            send_sensor_event(path_address, source_node, timestamp, msg_type)
+                            send_sensor_event(path_address, source_node, timestamp_string, msg_type)
                             tBlinkRed = threading.Thread(target = blink_red)  # blink Green LED when server sends ACK
                             tBlinkRed.start()
                             break;
@@ -630,12 +630,12 @@ def handle_communication(screen, start):
             # if I am the destination, terminate the transmission, blink LED
             if (msg_type == MESSAGE_TYPE.DATAACK):
                 destination_node = int(data[2])
-                timestamp = float(data[3])  # the timestamp of sending this packet
+                timestamp_float = float(data[3])
                 if (destination_node == HOST):  # if I am the destination
-                    if (time.time() - timestamp <= UPDATE_INTERVAL):  # ACK is not late
+                    if (time.time() - timestamp_float <= UPDATE_INTERVAL):  # ACK is not late
                         print_screen(screen, CONTROL.UPDATE, "A triggered message ACK received from server: " + "#" + str(STATUS.BLUE) + "[node " + str(SERVER) + "]")
                     else:
-                        print_screen(screen, CONTROL.WARNING, "#" + str(STATUS.RED) + "[An ACK to triggered message is delayed]")
+                        print_screen(screen, CONTROL.WARNING, "#" + str(STATUS.RED) + "[An ACK to sensor message is delayed]")
                     tBlinkBlue = threading.Thread(target = blink_blue)
                     tBlinkBlue.start()
                 else:  # if I am not the destination, forward the message to destination according to routing table
@@ -643,7 +643,7 @@ def handle_communication(screen, start):
                         if (route_list[-1] == destination_node):
                             path_node = int(route_list[1])
                             path_address = address_generator(path_node)
-                            reply_sensor_ack(path_address, destination_node, timestamp)
+                            reply_sensor_ack(path_address, destination_node, timestamp_float)
 
         except socket.error:
             pass
@@ -716,13 +716,13 @@ def reply_server(path_address, source_node):
 
 
 # this function will generate triggered message to server, including timestamp, SOURCE -> SERVER
-def send_sensor_event(path_address, source_node, timestamp, type):
+def send_sensor_event(path_address, source_node, timestamp_string, timestamp_float, type):
     if (type == MESSAGE_TYPE.DATA_IN):
         message = str(MESSAGE_TYPE.DATA_IN)
-        message = message + ' ' + str(HOST) + ' ' + str(source_node) + ' ' + timestamp
+        message = message + ' ' + str(HOST) + ' ' + str(source_node) + ' ' + timestamp_string + ' ' + str(timestamp_float)
     elif (type == MESSAGE_TYPE.DATA_OUT):
         message = str(MESSAGE_TYPE.DATA_OUT)
-        message = message + ' ' + str(HOST) + ' ' + str(source_node) + ' ' + timestamp
+        message = message + ' ' + str(HOST) + ' ' + str(source_node) + ' ' + timestamp_string + ' ' + str(timestamp_float)
 
     # Send UDP datagram
     socket_s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -731,9 +731,9 @@ def send_sensor_event(path_address, source_node, timestamp, type):
 
 
 # this function will do replying the triggered message, SERVER -> DESTINATION
-def reply_sensor_ack(path_address, destination_node, timestamp):
+def reply_sensor_ack(path_address, destination_node, timestamp_float):
     message = str(MESSAGE_TYPE.DATAACK)
-    message = message + ' ' + str(HOST) + ' ' + str(destination_node) + ' ' + timestamp
+    message = message + ' ' + str(HOST) + ' ' + str(destination_node) + ' ' + timestamp_float
 
     # Send UDP datagram
     socket_s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -768,7 +768,8 @@ def handle_sensor_event(screen, start):
         if (EVENT_DETECTED):  # waiting for event detection signal
             if GPIO.input(PIR_PIN):  # signal from 0 -> 1, node being triggered
                 time0t1 = datetime.datetime.now()
-                timestamp = str(time0t1.replace(microsecond = 0))
+                timestamp_string = str(time0t1.replace(microsecond = 0))
+                timestamp_float = time.time()
                 node_color = "#" + str(STATUS.YELLOW) + "[" + str(HOST) + "]"
                 time_color = "#" + str(STATUS.YELLOW) + "[" + str(time0t1.replace(microsecond=0)) + "]"
                 string = "Object is within detection range of node " + node_color + " since " + time_color
@@ -779,7 +780,7 @@ def handle_sensor_event(screen, start):
                         if (route_list[-1] == SERVER):
                             path_node = int(route_list[1])
                             path_address = address_generator(path_node)
-                            send_sensor_event(path_address, HOST, timestamp, MESSAGE_TYPE.DATA_IN)
+                            send_sensor_event(path_address, HOST, timestamp_string, timestamp_float, MESSAGE_TYPE.DATA_IN)
                             distance = len(route_list) - 1
                             tBlinkGreen = threading.Thread(target = blink_green, args = (distance, ))  # blink the Green LED
                             tBlinkGreen.start()
@@ -787,14 +788,15 @@ def handle_sensor_event(screen, start):
                             break
 
                 elif (SERVER == HOST):  # if local node is the server, send the message to laptop directly
-                    message = str(MESSAGE_TYPE.DATA_IN) + ' ' + str(SERVER) + ' ' + str(SERVER) + ' ' + timestamp
+                    message = str(MESSAGE_TYPE.DATA_IN) + ' ' + str(SERVER) + ' ' + str(SERVER) + ' ' + timestamp_string
                     socket_s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                     socket_s.settimeout(UPDATE_TIMEOUT)
                     socket_s.sendto(message, (LAPTOP_ADD, PORT))
 
             else:  # signal form 1 -> 0, object is leaving or keeping still
                 time1t0 = datetime.datetime.now()
-                timestamp = str(time1t0.replace(microsecond=0))
+                timestamp_string = str(time1t0.replace(microsecond=0))
+                timestamp_float = time.time()
                 node_color = "#" + str(STATUS.YELLOW) + "[" + str(HOST) + "]"
                 time_color = "#" + str(STATUS.YELLOW) + "[" + str(time1t0.replace(microsecond = 0)) + "]"
                 string = "Object stops moving or step out of the detection range of node " + node_color + " since " + time_color
@@ -805,7 +807,7 @@ def handle_sensor_event(screen, start):
                         if (route_list[-1] == SERVER):
                             path_node = int(route_list[1])
                             path_address = address_generator(path_node)
-                            send_sensor_event(path_address, HOST, timestamp, MESSAGE_TYPE.DATA_OUT)
+                            send_sensor_event(path_address, HOST, timestamp_string, timestamp_float, MESSAGE_TYPE.DATA_OUT)
                             distance = len(route_list) - 1
                             tBlinkGreen = threading.Thread(target = blink_green, args = (distance, ))  # blink the Green LED
                             tBlinkGreen.start()
@@ -813,7 +815,7 @@ def handle_sensor_event(screen, start):
                             break
 
                 elif (SERVER == HOST):  # if local node is the server
-                    message = str(MESSAGE_TYPE.DATA_OUT) + ' ' + str(SERVER) + ' ' + str(SERVER) + ' ' + timestamp
+                    message = str(MESSAGE_TYPE.DATA_OUT) + ' ' + str(SERVER) + ' ' + str(SERVER) + ' ' + timestamp_string
                     socket_s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                     socket_s.settimeout(UPDATE_TIMEOUT)
                     socket_s.sendto(message, (LAPTOP_ADD, PORT))
