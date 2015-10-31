@@ -771,13 +771,13 @@ def handle_sensor_event(screen, start):
         if (EVENT_DETECTED):  # waiting for event detection signal
             if GPIO.input(PIR_PIN):  # signal from 0 -> 1, node being triggered
                 time0t1 = datetime.datetime.now()
+                timestamp = str(time0t1.replace(microsecond = 0))
                 node_color = "#" + str(STATUS.YELLOW) + "[" + str(HOST) + "]"
                 time_color = "#" + str(STATUS.YELLOW) + "[" + str(time0t1.replace(microsecond=0)) + "]"
                 string = "Object is within detection range of node " + node_color + " since " + time_color
                 print_screen(screen, CONTROL.UPDATE, string)
 
                 if (SERVER and SERVER != HOST):  # if local node knows the server, send triggered message with timestamp to server
-                    timestamp = str(time0t1.replace(microsecond = 0))
                     for route_list in ROUTETable:  # find the routing path
                         if (route_list[-1] == SERVER):
                             path_node = int(route_list[1])
@@ -797,13 +797,13 @@ def handle_sensor_event(screen, start):
 
             else:  # signal form 1 -> 0, object is leaving or keeping still
                 time1t0 = datetime.datetime.now()
+                timestamp = str(time1t0.replace(microsecond=0))
                 node_color = "#" + str(STATUS.YELLOW) + "[" + str(HOST) + "]"
                 time_color = "#" + str(STATUS.YELLOW) + "[" + str(time1t0.replace(microsecond = 0)) + "]"
                 string = "Object stops moving or step out of the detection range of node " + node_color + " since " + time_color
                 print_screen(screen, CONTROL.UPDATE, string)
 
                 if (SERVER and SERVER != HOST):  # if local node knows the server, notify server that the object is no longer sensed
-                    timestamp = str(time1t0.replace(microsecond=0))
                     for route_list in ROUTETable:
                         if (route_list[-1] == SERVER):
                             path_node = int(route_list[1])
