@@ -647,6 +647,7 @@ def handle_communication(screen, start):
         except socket.error:
             pass
 
+
 def terminate(thread):
     exc = ctypes.py_object(SystemExit)
     res = ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(thread.ident), exc)
@@ -732,7 +733,7 @@ def send_sensor_event(path_address, source_node, timestamp_string, timestamp_flo
 # this function will do replying the triggered message, SERVER -> DESTINATION
 def reply_sensor_ack(path_address, destination_node, timestamp_float):
     message = str(MESSAGE_TYPE.DATAACK)
-    message = message + ' ' + str(HOST) + ' ' + str(destination_node) + ' ' + timestamp_float
+    message = message + ' ' + str(HOST) + ' ' + str(destination_node) + ' ' + str(timestamp_float)
 
     # Send UDP datagram
     socket_s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
