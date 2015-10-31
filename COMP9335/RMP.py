@@ -61,7 +61,7 @@ def init():
     PIR_PIN = 16
     EVENT_DETECTED = 0
 
-    setUpPins()
+    set_up_pins()
     # The main function will runs in a new screen which can support customised commands
     curses.wrapper(main)
 
