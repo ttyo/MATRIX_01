@@ -187,8 +187,8 @@ def main(screen):
     tHandleSensorEvent = threading.Thread(target = handle_sensor_event, args = (screen, 1))
     tHandleSensorEvent.start()
     print_screen(screen, CONTROL.NORMAL, "Sensor module starting ...")
-    tSetUpPins = threading.Thread(target = set_up_pins())
-    tSetUpPins.start()
+    #tSetUpPins = threading.Thread(target = set_up_pins())
+    #tSetUpPins.start()
 
     print_screen(screen, CONTROL.NORMAL, "Local identifier: " + "#" + str(STATUS.BLUE) + "[" + str(HOST) + "]")
     print_screen(screen, CONTROL.NORMAL, "Local ip address: " + "#" + str(STATUS.BLUE) + "[" + HOST_ADDRESS + "]")
@@ -215,8 +215,8 @@ def main(screen):
                 terminate(tHandleSensorEvent)
             if (tHandleUdpAll.isAlive()):
                 terminate(tHandleUdpAll)
-            if (tSetUpPins.isAlive()):
-                terminate(tSetUpPins)
+            #if (tSetUpPins.isAlive()):
+            #    terminate(tSetUpPins)
 
             print_screen(screen, CONTROL.NORMAL, "Local node is leaving network now.")
             screen.refresh()
