@@ -62,8 +62,7 @@ def init():
     EVENT_DETECTED = 0
 
     set_up_pins()
-    # The main function will runs in a new screen which can support customised commands
-    curses.wrapper(main)
+    curses.wrapper(main)  # The main function will runs in a new screen which can support customised commands
 
 
 def set_up_pins():
