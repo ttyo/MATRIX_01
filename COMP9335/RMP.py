@@ -72,7 +72,7 @@ def set_up_pins():
     GPIO.setup(BLUE_PIN, GPIO.OUT)   # set up GPIO output channel
     GPIO.setup(PIR_PIN, GPIO.IN)  # setup GPIO 16 as INPUT
 
-    GPIO.add_event_detect(PIR_PIN, GPIO.BOTH, callback = eventCallback)
+    GPIO.add_event_detect(PIR_PIN, GPIO.BOTH, callback = event_call_back)
     while True:
         time.sleep(100)
 
@@ -548,12 +548,9 @@ def handle_communication(screen, start):
             # then pass it to another function
             if (msg_type == MESSAGE_TYPE.UPDATE and (not CONVERGENCE)):
                 del data[0]
-                #debug = ''.join(data)
-                #print_screen(screen, CONTROL.UPDATE, "A routing table update received from: " + "#" + str(STATUS.BLUE) + "[node " + str(debug) + "]")
                 print_screen(screen, CONTROL.UPDATE, "A routing table update received from: " + "#" + str(STATUS.BLUE) + "[node " + str(direct_source_node) + "]")
                 received_table = []
                 temp_list = []
-                #for identifier in data:
                 while (len(data) > 0):
                     #direct_source_node = int(identifier)
                     identifier = data.pop(0)
@@ -760,7 +757,7 @@ def handle_route_update(received_table):
             DSTList.update({new_destination:new_distance})  # update the destination list
 
 
-def eventCallback(channel):
+def event_call_back(channel):
     global EVENT_DETECTED
     EVENT_DETECTED = 1
 
