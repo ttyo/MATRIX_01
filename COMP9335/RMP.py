@@ -792,6 +792,7 @@ def handle_sensor_event(screen, start):
                     socket_s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                     socket_s.settimeout(UPDATE_TIMEOUT)
                     socket_s.sendto(message, (LAPTOP_ADD, PORT))
+                    EVENT_DETECTED = 0
 
             else:  # signal form 1 -> 0, object is leaving or keeping still
                 time1t0 = datetime.datetime.now()
@@ -819,6 +820,7 @@ def handle_sensor_event(screen, start):
                     socket_s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                     socket_s.settimeout(UPDATE_TIMEOUT)
                     socket_s.sendto(message, (LAPTOP_ADD, PORT))
+                    EVENT_DETECTED = 0
 
 
 # this function will blink blue LED in order to react to ACK of triggered message
