@@ -568,7 +568,7 @@ def handle_communication(screen, start):
             # HELLO message, get sequence number from HELLO
             # send ACK with the sequence number back
             #if (msg_type == MESSAGE_TYPE.HELLO):
-            #    print_screen(screen, CONTROL.UPDATE, "A hello message received from: " + "#" + str(STATUS.BLUE) + "[node " + str(direct_source_node) + "]")
+            #    print_screen(screen, CONTROL.UPDATE, "A hello from: " + "#" + str(STATUS.BLUE) + "[node " + str(direct_source_node) + "]")
             #    seq_num = int(data[2])
             #    dh_address = address_generator(direct_source_node)
             #    reply_ack(dh_address, seq_num)
@@ -619,7 +619,7 @@ def handle_communication(screen, start):
                         if (route_list[-1] == SERVER):
                             path_node = int(route_list[1])
                             path_address = address_generator(path_node)
-                            send_sensor_event(path_address, source_node, timestamp_string, msg_type)
+                            send_sensor_event(path_address, source_node, timestamp_string, timestamp_float, msg_type)
                             tBlinkRed = threading.Thread(target = blink_red)  # blink Green LED when server sends ACK
                             tBlinkRed.start()
                             break;
@@ -717,6 +717,7 @@ def reply_server(path_address, source_node):
 
 # this function will generate triggered message to server, including timestamp, SOURCE -> SERVER
 def send_sensor_event(path_address, source_node, timestamp_string, timestamp_float, type):
+    message = ''
     if (type == MESSAGE_TYPE.DATA_IN):
         message = str(MESSAGE_TYPE.DATA_IN)
         message = message + ' ' + str(HOST) + ' ' + str(source_node) + ' ' + timestamp_string + ' ' + str(timestamp_float)
