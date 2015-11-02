@@ -603,7 +603,7 @@ def handle_communication(screen, start):
                                 message = str(MESSAGE_TYPE.DATA_OUT)
 
                             # server will also resend the message to laptop, then blink the green LED
-                            message = message + ' ' + str(SERVER) + str(destination_node) + timestamp_string
+                            message = message + ' ' + str(SERVER) + ' ' + str(destination_node) + ' ' + timestamp_string + ' ' + str(timestamp_float)
                             socket_s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                             socket_s.settimeout(UPDATE_TIMEOUT)
                             socket_s.sendto(message, (LAPTOP_ADD, PORT))
@@ -789,7 +789,7 @@ def handle_sensor_event(screen, start):
                             break
 
                 elif (SERVER == HOST):  # if local node is the server, send the message to laptop directly
-                    message = str(MESSAGE_TYPE.DATA_IN) + ' ' + str(SERVER) + ' ' + str(SERVER) + ' ' + timestamp_string
+                    message = str(MESSAGE_TYPE.DATA_IN) + ' ' + str(SERVER) + ' ' + str(SERVER) + ' ' + timestamp_string + ' ' + str(timestamp_float)
                     socket_s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                     socket_s.settimeout(UPDATE_TIMEOUT)
                     socket_s.sendto(message, (LAPTOP_ADD, PORT))
@@ -818,7 +818,7 @@ def handle_sensor_event(screen, start):
                             break
 
                 elif (SERVER == HOST):  # if local node is the server
-                    message = str(MESSAGE_TYPE.DATA_OUT) + ' ' + str(SERVER) + ' ' + str(SERVER) + ' ' + timestamp_string
+                    message = str(MESSAGE_TYPE.DATA_OUT) + ' ' + str(SERVER) + ' ' + str(SERVER) + ' ' + timestamp_string + ' ' + str(timestamp_float)
                     socket_s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                     socket_s.settimeout(UPDATE_TIMEOUT)
                     socket_s.sendto(message, (LAPTOP_ADD, PORT))
