@@ -120,6 +120,8 @@ def main(screen):
     # initialise the protocol
     while True:
         command = stdin_to_command(screen, height, display_type)
+        command_color = "#" + str(STATUS.COMMAND) + "[" + command + "]"
+        command_error = "#" + str(STATUS.YELLOW) + "[" + command + "]"
         if (network_configured and node_configured and done):
             display_type = 1
             break
@@ -128,11 +130,11 @@ def main(screen):
             if (command.startswith("network")):  # record the total number of nodes
                 try:
                     parameter = int(command.split()[1])
-                    print_screen(screen, CONTROL.NORMAL, "Command: " + "#" + str(STATUS.COMMAND) + "[" + command + "]")
+                    print_screen(screen, CONTROL.NORMAL, "Command: " + command_color)
                     TOTAL_NODES = parameter
                     network_configured = 1
                 except:
-                    print_screen(screen, CONTROL.ERROR, "Invalid parameter(s) in command: " + "#" + str(STATUS.YELLOW) + "[" + command + "]")
+                    print_screen(screen, CONTROL.ERROR, "Invalid parameter(s) in command: " + command_error)
                     continue
 
             elif (command.startswith("node")):  # record the information of DHs
@@ -146,14 +148,14 @@ def main(screen):
                         DHList[DH] = [0, 0]  # DHList: [A, B, C], A is DH identifier, B is received sequence number, C is successive lost number
                         ROUTETable.append([HOST, DH])
                         DSTList[DH] = 1  # DSTList: [A, B], A is DH identifier, B is distance to A
-                    print_screen(screen, CONTROL.NORMAL, "Command: " + "#" + str(STATUS.COMMAND) + "[" + command + "]")
+                    print_screen(screen, CONTROL.NORMAL, "Command: " + command_color)
                     node_configured = 1
                 except:
-                    print_screen(screen, CONTROL.ERROR, "Invalid parameter(s) in command: " + "#" + str(STATUS.YELLOW) + "[" + command + "]")
+                    print_screen(screen, CONTROL.ERROR, "Invalid parameter(s) in command: " + command_error)
                     continue
 
             elif (command == "server" and node_configured == 1):  # local node is the server
-                print_screen(screen, CONTROL.NORMAL, "Command: " + "#" + str(STATUS.COMMAND) + "[" + command + "]")
+                print_screen(screen, CONTROL.NORMAL, "Command: " + command_color)
                 SERVER = int(HOST)
                 done = 1
 
@@ -162,12 +164,12 @@ def main(screen):
 
             elif (command == "done"):
                 done = 1
-                print_screen(screen, CONTROL.NORMAL, "Command: " + "#" + str(STATUS.COMMAND) + "[" + command + "]")
+                print_screen(screen, CONTROL.NORMAL, "Command: " + command_color)
 
         elif (command == ''):
             print_screen(screen, CONTROL.NORMAL, "")
         else:
-            print_screen (screen, CONTROL.ERROR, "Command unknown: " + "#" + str(STATUS.YELLOW) + "[" + command + "]")
+            print_screen (screen, CONTROL.ERROR, "Command unknown: " + command_error)
 
         roll_up_screen(screen)
         screen.refresh()
@@ -206,6 +208,8 @@ def main(screen):
     # user can input command now
     while True:
         command = stdin_to_command(screen, height, display_type)
+        command_color = "#" + str(STATUS.COMMAND) + "[" + command + "]"
+        command_error = "#" + str(STATUS.YELLOW) + "[" + command + "]"
 
         # Quit command
         if (command == "quit"):
@@ -230,7 +234,7 @@ def main(screen):
         elif (command.startswith("show")):
             try:
                 parameter = command.split()[1]
-                print_screen(screen, CONTROL.NORMAL, "Command: " + "#" + str(STATUS.COMMAND) + "[" + command + "]")
+                print_screen(screen, CONTROL.NORMAL, "Command: " + command_color)
                 if (parameter == "routingtable"):
                     if (len(ROUTETable) == 0):
                         print_screen(screen, CONTROL.RESULT, "#" + str(STATUS.GREEN) + "[Routing table is empty]")
@@ -283,21 +287,22 @@ def main(screen):
                     print_screen(screen, CONTROL.NORMAL, "Local ip address: " + "#" + str(STATUS.BLUE) + "[" + HOST_ADDRESS + "]")
 
                 else:
-                    print_screen (screen, CONTROL.ERROR, "Unknown \"show\" parameter(s): " + "#" + str(STATUS.YELLOW) + "[" + parameter + "]")
+                    command_error = "#" + str(STATUS.YELLOW) + "[" + parameter + "]"
+                    print_screen (screen, CONTROL.ERROR, "Unknown \"show\" parameter(s): " + command_error)
 
             except:
-                print_screen (screen, CONTROL.ERROR, "Invalid parameter(s): " + "#" + str(STATUS.YELLOW) + "[" + command + "]")
+                print_screen (screen, CONTROL.ERROR, "Invalid parameter(s): " + command_error)
                 continue
 
         elif (command == "server" and SERVER == HOST):
             print_screen (screen, CONTROL.ERROR, "Local node is already designated as server.")
         elif (command == "server"):
-            print_screen(screen, CONTROL.NORMAL, "Command: " + "#" + str(STATUS.COMMAND) + "[" + command + "]")
+            print_screen(screen, CONTROL.NORMAL, "Command: " + command_color)
             SERVER_CONVERGENCE = 0;
             SERVER = int(HOST)
 
         elif (command == "help"):
-            print_screen(screen, CONTROL.NORMAL, "Command: " + "#" + str(STATUS.COMMAND) + "[" + command + "]")
+            print_screen(screen, CONTROL.NORMAL, "Command: " + command_color)
             print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[show routingtable]] will display the current routing table.")
             print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[show neighbour]] will display the current neighbour list.")
             print_screen(screen, CONTROL.NORMAL, "[#" + str(STATUS.COMMAND) + "[show destination]] will display the current known destinations.")
@@ -309,12 +314,14 @@ def main(screen):
 
         elif (command == ''):
             print_screen(screen, CONTROL.NORMAL, "")
+
         else:
-            print_screen (screen, CONTROL.ERROR, "Command unknown: " + "#" + str(STATUS.YELLOW) + "[" + command + "]")
+            print_screen (screen, CONTROL.ERROR, "Command unknown: " + command_error)
 
         roll_up_screen(screen)
         screen.refresh()
-        # end of while
+    # end of while
+# end of main
 
 
 # This function will read the STDIN, and make it at the bottom
@@ -645,6 +652,8 @@ def handle_communication(screen, start):
 
         except socket.error:
             pass
+    # end of while
+# end of handle_communication
 
 
 def terminate(thread):
