@@ -12,7 +12,6 @@
 # Oct - Nov, 2015
 #
 
-import sys
 import re
 import time
 import socket
@@ -442,8 +441,8 @@ def handle_communication(screen, start):
     socket_l.bind((HOST_ADDRESS, PORT))
     sent_time = 0
     sent_time2 = 0
-    sent_time3 = 0
-    sequenceNum = 0
+    #sent_time3 = 0
+    #sequenceNum = 0
     server_reply = []
 
     while True:
@@ -770,7 +769,8 @@ def handle_sensor_event(screen, start):
             if GPIO.input(PIR_PIN):  # signal from 0 -> 1, node being triggered
                 time0t1 = datetime.datetime.now()
                 timestamp_string = str(time0t1.replace(microsecond = 0))
-                timestamp_float = float(time.time())
+                timestamp_string = re.sub(r' ', '@', timestamp_string)
+                timestamp_float = time.time()
                 node_color = "#" + str(STATUS.YELLOW) + "[" + str(HOST) + "]"
                 time_color = "#" + str(STATUS.YELLOW) + "[" + str(time0t1.replace(microsecond=0)) + "]"
                 string = "Object is within detection range of node " + node_color + " since " + time_color
@@ -798,7 +798,8 @@ def handle_sensor_event(screen, start):
             else:  # signal form 1 -> 0, object is leaving or keeping still
                 time1t0 = datetime.datetime.now()
                 timestamp_string = str(time1t0.replace(microsecond=0))
-                timestamp_float = float(time.time())
+                timestamp_string = re.sub(r' ', '@', timestamp_string)
+                timestamp_float = time.time()
                 node_color = "#" + str(STATUS.YELLOW) + "[" + str(HOST) + "]"
                 time_color = "#" + str(STATUS.YELLOW) + "[" + str(time1t0.replace(microsecond = 0)) + "]"
                 string = "Object stops moving or step out of the detection range of node " + node_color + " since " + time_color
