@@ -603,12 +603,12 @@ def handle_communication(screen, start):
                                 print_screen(screen, CONTROL.UPDATE, "Object stops moving or steps out of the range of node " + node_color)
                                 message = str(MESSAGE_TYPE.DATA_OUT)
 
-                            # server will also resend the message to laptop
+                            # server will also resend the message to laptop, then blink the green LED
                             message = message + ' ' + str(SERVER) + str(destination_node) + timestamp_string
                             socket_s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                             socket_s.settimeout(UPDATE_TIMEOUT)
                             socket_s.sendto(message, (LAPTOP_ADD, PORT))
-    
+
                             distance = len(route_list) - 1
                             tBlinkGreen = threading.Thread(target = blink_green, args = (distance,))  # blink Green LED when server sends ACK
                             tBlinkGreen.start()
@@ -770,7 +770,7 @@ def handle_sensor_event(screen, start):
             if GPIO.input(PIR_PIN):  # signal from 0 -> 1, node being triggered
                 time0t1 = datetime.datetime.now()
                 timestamp_string = str(time0t1.replace(microsecond = 0))
-                timestamp_float = time.time()
+                timestamp_float = float(time.time())
                 node_color = "#" + str(STATUS.YELLOW) + "[" + str(HOST) + "]"
                 time_color = "#" + str(STATUS.YELLOW) + "[" + str(time0t1.replace(microsecond=0)) + "]"
                 string = "Object is within detection range of node " + node_color + " since " + time_color
@@ -798,7 +798,7 @@ def handle_sensor_event(screen, start):
             else:  # signal form 1 -> 0, object is leaving or keeping still
                 time1t0 = datetime.datetime.now()
                 timestamp_string = str(time1t0.replace(microsecond=0))
-                timestamp_float = time.time()
+                timestamp_float = float(time.time())
                 node_color = "#" + str(STATUS.YELLOW) + "[" + str(HOST) + "]"
                 time_color = "#" + str(STATUS.YELLOW) + "[" + str(time1t0.replace(microsecond = 0)) + "]"
                 string = "Object stops moving or step out of the detection range of node " + node_color + " since " + time_color
