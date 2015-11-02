@@ -616,8 +616,8 @@ def handle_communication(screen, start):
                             socket_s.sendto(message, (LAPTOP_ADD, PORT))
 
                             distance = len(route_list) - 1
-                            tBlinkGreen = threading.Thread(target = blink_green, args = (distance,))  # blink Green LED when server sends ACK
-                            tBlinkGreen.start()
+                            tBlinkBlue = threading.Thread(target = blink_blue, args = (distance,))  # blink Blue LED when server sends ACK
+                            tBlinkBlue.start()
                             break
                 else:  # if I am not the server, forward it to the server according to routing table
                     source_node = destination_node
@@ -626,8 +626,10 @@ def handle_communication(screen, start):
                             path_node = int(route_list[1])
                             path_address = address_generator(path_node)
                             send_sensor_event(path_address, source_node, timestamp_string, timestamp_float, msg_type)
-                            tBlinkRed = threading.Thread(target = blink_red)  # blink Green LED when server sends ACK
-                            tBlinkRed.start()
+
+                            distance = len(route_list) - 1
+                            tBlinkGreen = threading.Thread(target = blink_green, args = (distance,))  # blink Green LED when server sends ACK
+                            tBlinkGreen.start()
                             break;
 
             # DataACK from SERVER -> SOURCE(DESTINATION), in here the LED(BLUE) will blink to it if local is destination
@@ -641,7 +643,8 @@ def handle_communication(screen, start):
                         print_screen(screen, CONTROL.UPDATE, "A triggered message ACK received from server: " + "#" + str(STATUS.BLUE) + "[node " + str(SERVER) + "]")
                     else:
                         print_screen(screen, CONTROL.WARNING, "#" + str(STATUS.RED) + "[An ACK to sensor message is delayed]")
-                    tBlinkBlue = threading.Thread(target = blink_blue)
+
+                    tBlinkBlue = threading.Thread(target = blink_blue)  # blink Blue LED when sender receives the ACK
                     tBlinkBlue.start()
                 else:  # if I am not the destination, forward the message to destination according to routing table
                     for route_list in ROUTETable:
