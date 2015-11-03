@@ -513,7 +513,7 @@ def handle_communication(screen, start):
             # then flood the message to other DHs except the source node (split horizon)
             # message sent between DHs, step by step
             if (msg_type == MESSAGE_TYPE.SERVER):
-                if (not SERVER):
+                if (SERVER == 0):
                     SERVER = int(data[2])  # record the server
                     SERVER_CONVERGENCE = 1
                     print_screen(screen, CONTROL.UPDATE, "Local node is now aware of Designated Node: " + "#" + str(STATUS.BLUE) + "[node " + str(SERVER) + "]")
