@@ -835,6 +835,9 @@ def handle_sensor_event(screen, start):
                     socket_s.settimeout(UPDATE_TIMEOUT)
                     socket_s.sendto(message, (LAPTOP_ADD, PORT))
                     EVENT_DETECTED = 0
+        # end of big if
+        time.sleep(2)
+    #end of big while
 
 
 # this function will blink blue LED in order to react to ACK of triggered message
