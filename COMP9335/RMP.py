@@ -513,9 +513,10 @@ def handle_communication(screen, start):
             # then flood the message to other DHs except the source node (split horizon)
             # message sent between DHs, step by step
             if (msg_type == MESSAGE_TYPE.SERVER):
-                SERVER = int(data[2])  # record the server
-                SERVER_CONVERGENCE = 1
-                print_screen(screen, CONTROL.UPDATE, "Local node is now aware of Designated Node: " + "#" + str(STATUS.BLUE) + "[node " + str(SERVER) + "]")
+                if (not SERVER):
+                    SERVER = int(data[2])  # record the server
+                    SERVER_CONVERGENCE = 1
+                    print_screen(screen, CONTROL.UPDATE, "Local node is now aware of Designated Node: " + "#" + str(STATUS.BLUE) + "[node " + str(SERVER) + "]")
                 for route_list in ROUTETable:  # reply to server, search the routing table, SOURCE -> SERVER
                     if (route_list[-1] == SERVER):
                         path_node = int(route_list[1])
@@ -539,12 +540,13 @@ def handle_communication(screen, start):
                         SERVER_CONVERGENCE = 1
                         print_screen(screen, CONTROL.UPDATE, "Designated Node info is fully synchronised among the network now")
                 else:  # I am not the server, forward it to server according to routing table
-                    for route_list in ROUTETable:
-                        if (route_list[-1] == SERVER):
-                            path_node = int(route_list[1])
-                            path_address = address_generator(path_node)
-                            reply_server(path_address, source_node)
-                            break
+                    if (SERVER):  # only when local node knows the server
+                        for route_list in ROUTETable:
+                            if (route_list[-1] == SERVER):
+                                path_node = int(route_list[1])
+                                path_address = address_generator(path_node)
+                                reply_server(path_address, source_node)
+                                break
 
             # update message, if in convergence then drop it
             # if not in convergence, handle the update
@@ -776,7 +778,7 @@ def event_call_back(channel):
 
 def handle_sensor_event(screen, start):
     global EVENT_DETECTED
-    time.sleep(2)
+    time.sleep(1)
     while True:
         if (EVENT_DETECTED):  # waiting for event detection signal
             if GPIO.input(PIR_PIN):  # signal from 0 -> 1, node being triggered
@@ -806,6 +808,8 @@ def handle_sensor_event(screen, start):
                     socket_s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                     socket_s.settimeout(UPDATE_TIMEOUT)
                     socket_s.sendto(message, (LAPTOP_ADD, PORT))
+                    tBlinkGreen = threading.Thread(target = blink_green, args = (1, ))  # blink the Green LED
+                    tBlinkGreen.start()
                     EVENT_DETECTED = 0
 
             else:  # signal form 1 -> 0, object is leaving or keeping still
@@ -835,9 +839,11 @@ def handle_sensor_event(screen, start):
                     socket_s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                     socket_s.settimeout(UPDATE_TIMEOUT)
                     socket_s.sendto(message, (LAPTOP_ADD, PORT))
+                    tBlinkGreen = threading.Thread(target = blink_green, args = (1, ))  # blink the Green LED
+                    tBlinkGreen.start()
                     EVENT_DETECTED = 0
         # end of big if
-        time.sleep(2)
+        time.sleep(0.5)
     # end of big while
 
 
