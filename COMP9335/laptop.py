@@ -1,8 +1,7 @@
-import sys
-import time
+
 import socket
 
-HOST_ADDRESS = "192.168.1.106"
+HOST_ADDRESS = "192.168.1.106"  # this is address is of the laptop
 PORT = 55056
 UPDATE_TIMEOUT = 15
 BUFFER = 1024
@@ -33,4 +32,4 @@ while True:
     except:
         print("Error in handling packet")
         continue
-        
+
