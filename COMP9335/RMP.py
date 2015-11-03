@@ -776,6 +776,7 @@ def event_call_back(channel):
 
 def handle_sensor_event(screen, start):
     global EVENT_DETECTED
+    time.sleep(2)
     while True:
         if (EVENT_DETECTED):  # waiting for event detection signal
             if GPIO.input(PIR_PIN):  # signal from 0 -> 1, node being triggered
