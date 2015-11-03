@@ -837,7 +837,7 @@ def handle_sensor_event(screen, start):
                     EVENT_DETECTED = 0
         # end of big if
         time.sleep(2)
-    #end of big while
+    # end of big while
 
 
 # this function will blink blue LED in order to react to ACK of triggered message
