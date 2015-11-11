@@ -618,7 +618,7 @@ def handle_communication(screen, start):
                             socket_s.sendto(message, (LAPTOP_ADD, PORT))
 
                             distance = len(route_list) - 1
-                            tBlinkBlue = threading.Thread(target = blink_blue, args = (distance,))  # blink Blue LED when server sends ACK
+                            tBlinkBlue = threading.Thread(target = blink_blue)  # blink Blue LED when server sends ACK
                             tBlinkBlue.start()
                             break
                 else:  # if I am not the server, forward it to the server according to routing table
