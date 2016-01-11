@@ -1,0 +1,14 @@
+wrong number means: non 16 digit or an invalid number
+correct number means: 16 digits including signs, e.g.: 0000-0000-0-0-0-0-0000
+
+1. empty textfield -> validate (invalid)
+2. a correct number -> validate (valid)
+3. a wrong number -> validate (invalid)
+
+4. 1 -> close (close)
+5. 2 -> change to a wrong number -> reset (back to the correct number)
+6. 3 -> change to a correct number -> validate (valid)
+
+7. 1 -> change to a wrong/correct/empty textfield number -> validate (invalid/valid/invalid)
+8. 5 -> change to a wrong number -> close (close)
+9. 6 -> change to a wrong number -> validate (invalid) -> change to a correct number -> reset (back to the correct number) -> close (close)

@@ -1,9 +1,5 @@
 #!/bin/bash
-# 
-# Author
-# Chengjia Xu, CSE of UNSW
-# ID: 5025306
-#
+
 #####################################
 # about the "whitespace" around "=" #
 #####################################
@@ -54,3 +50,7 @@ large_files=${large_files//"$BASEDIR/"/''}
 echo "Small files:$small_files"
 echo "Medium-sized files:$medium_files"
 echo "Large files:$large_files"
+
+
+
+

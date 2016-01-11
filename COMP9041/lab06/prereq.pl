@@ -23,11 +23,13 @@ sub prereq {
         my @pre_list1 = ();
 	my @pre_list2 = ();
 
-        open F1, "wget -q -O- $url1 |" or die;
-        open F2, "wget -q -O- $url2 |" or die;
+        open F1, "wget -q -O- $url2 $url1| "or die;
+        #open F2, "wget -q -O- $url2 |" or die;
         while (my $line = <F1>) {
                 if ($line =~ /.*Prerequisite.*/) {
                         $line =~ s/\<\/p\>\<p\>\<strong\>Excluded\:.+\<\/a\>\<\/p\>$//g;
+                        #$line =~ /[A-Z]{4}[0-9]{4}/gi;
+                        #@pre_list = $line; QUESTION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                         @pre_list1 = $line =~ /[A-Z]{4}[0-9]{4}/gi;
 
 			foreach $pre_course (@pre_list1) {
@@ -47,25 +49,5 @@ sub prereq {
                 }
         }
 
-        while (my $line = <F2>) {
-                if ($line =~ /.*Prerequisite.*/) {
-                        $line =~ s/\<\/p\>\<p\>\<strong\>Excluded\:.+\<\/a\>\<\/p\>$//g;
-                        @pre_list2 = $line =~ /[A-Z]{4}[0-9]{4}/gi;
-
-                        foreach $pre_course (@pre_list2) {
-                                my $notnew = 0;
-                                foreach $listed_course (@result_list) {
-                                        if ($listed_course eq $pre_course) {
-                                                $notnew = 1;
-                                        }
-                                }
-                                if ($notnew != 1) {
-					push @result_list, $pre_course;
-                                        if ($flag == 1) {
-                                                &prereq($pre_course);
-                                        }
-                                }
-                        }
-                }
-        }
 }
+

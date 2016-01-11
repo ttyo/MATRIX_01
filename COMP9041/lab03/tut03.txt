@@ -1,0 +1,7 @@
+1.
+PATH does not include the current path
+way of solution: add the path of the shell script into PATH
+PATH=$PATH:/xxx/xxx/xxx/xxx then the shell script can be run directly
+
+2.
+

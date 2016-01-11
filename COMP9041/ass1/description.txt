@@ -1,0 +1,51 @@
+this is my first diary
+
+goal summary:
+	level0: only simple & obvious statements. =, $, #
+	level1: only simple & obvious statements, no nesting of "for" loops. ?, *, [] only for file matching
+	level2: only simple & obvious statements, no nesting of "for/while/if" statements. single quote
+	level3: "for/while/if" statements can be nested. double quotes, unquote
+	level4: simple use of mv/chmod/ls/rm. <>, &&, ||, ;, \, ), $(), $(()). $() is equivalent to back quotes. $(()) for arithmetic
+
+The only Shell builtins that I need to translate directly into Python are:
+	exit
+	read
+	cd
+	test (-r, -d)
+	expr
+	echo (-n) (They all must be translated into Python ways. E.g., translate "echo xxx" into "print (xxx)")
+
+
+
+demo0 (level 0)
+	handle "echo" without quotes
+	handle "ls", and with option "-l"
+	handle "pwd"
+	handle "date"
+	other basic commands
+	handle multiple demo0 commands
+
+demo1:
+	handle "cd"
+	handle "for" loop, and with "exit"
+	handle files
+	handle read strings
+
+demo2:
+	handle arguments
+	handle "if" and "elif"
+	handle single quotes
+
+demo3:
+	handle double quotes
+	handle "test"
+	handle "ls", with multiple options
+	handle "while" loop
+
+demo4:
+	handle checking directory
+	handle multiple sequences in "while" loop
+	handle all demos
+
+
+

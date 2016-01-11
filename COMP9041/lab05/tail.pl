@@ -1,9 +1,4 @@
 #!/usr/bin/perl -w
-# 
-# Author
-# Chengjia Xu, CSE of UNSW
-# ID: 5025306
-#
 
 @files = ();
 @stdin_file = ();
@@ -86,3 +81,4 @@ foreach $f (@files) {
 	}
 	close(F);
 }
+
