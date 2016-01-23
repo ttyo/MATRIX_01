@@ -1,16 +1,21 @@
+############################################################################
 #
 # RIP-like Multi-hop Protocol (RMP)
-# RMP is a light-weight dynamic routing protocol for sensor network, used in the research
-# project: Time Synchronisation for Activity Monitoring from course COMP(49)335
+#
+# RMP is a light-weight dynamic routing protocol for sensor network, used in
+# the research project: Time Synchronisation for Activity Monitoring from
+# course COMP(49)335, UNSW
+#
 # Each node in the protocol will finally has a topology of the whole network while
 # in the convergence status. The metric in RMP is based on hop number, with server
-# (called designated node) flooding mechanism, triggered update, and a periodical hello
-# behaviour between neighbours acting as heart-beat detection for keep-alive
+# (called designated node) flooding mechanism, triggered update, and a periodical
+# hello behaviour between neighbours acting as heart-beat detection for keep-alive
 #
 # Developed on: Python 2.7.10
 # Author: Chengjia Xu, 5025306, CSE of UNSW
 # Oct - Dec, 2015
 #
+#############################################################################
 
 import re
 import time
@@ -24,6 +29,9 @@ import RPi.GPIO as GPIO     #import Pi general-purpose input/output (GPIO) libra
 import datetime
 from string import printable
 
+
+"""Class Node will provide a based information to a local node
+"""
 class Node:
     def __init__(self):
         self.TOTAL_NODES = 0
@@ -39,6 +47,7 @@ class Node:
         self.HOST_ADDRESS = ""
         self.CONVERGENCE = 0
         self.SERVER_CONVERGENCE = 0
+        self.EVENT_DETECTED = 0
 
 
     """Reset & Clean all states
@@ -56,17 +65,21 @@ class Node:
         self.HOST_ADDRESS = ""
         self.CONVERGENCE = 0
         self.SERVER_CONVERGENCE = 0
+        self.EVENT_DETECTED = 0
 
-
+    """Define the Enumeration type
+    """
     def enum(self, **enums):
         return type('Enum', (), enums)
 
 
+    """Setup the static values, including enumeration of the system
+    """
     def setup_states(self):
         global STATUS, PEER_STATUS, CONTROL, MESSAGE_TYPE, PRINTABLE
         global PORT, UPDATE_INTERVAL, UPDATE_TIMEOUT, HELLO_INTERVAL, HELLO_TIMEOUT, HELLO_LOST, SERVER_INTERVAL
         global SUCCESSIVE_LOST, SEQ, BUFFER
-        global GREEN_PIN, RED_PIN, BLUE_PIN, LED_DELAY, PIR_PIN, VERSION, EVENT_DETECTED
+        global GREEN_PIN, RED_PIN, BLUE_PIN, LED_DELAY, PIR_PIN, VERSION
 
         STATUS = self.enum(NORMAL = 1, WARNING = 2, COMMAND = 3, RED = 4, GREEN = 5, ERROR = 6, YELLOW = 7, BLUE = 8, RESULT = 9)
         PEER_STATUS = self.enum(OK = 1, INVALID = 2, DEAD = 3)
@@ -89,7 +102,6 @@ class Node:
         BLUE_PIN = 23
         LED_DELAY = 0.5
         PIR_PIN = 16
-        EVENT_DETECTED = 0
         VERSION = "RMP alpha, version 0.9"
 
 
@@ -106,7 +118,7 @@ class Node:
         GPIO.add_event_detect(PIR_PIN, GPIO.BOTH, callback = event_call_back, bouncetime = 300)
 
 
-    """Initiate the program
+    """Start the program
     """
     def init(self):
         self.setup_pins()
@@ -114,6 +126,8 @@ class Node:
         curses.wrapper(self.initiate)  # The main function will runs in a new screen which can support customised commands
 
 
+    """Initiate the system, user has to configure the local node for the initiation
+    """
     def initiate(self, screen):
         global history, window_size, height
         global STATUS, PEER_STATUS, CONTROL, MESSAGE_TYPE, PRINTABLE
@@ -153,7 +167,7 @@ class Node:
 
         # initialise the protocol
         while (not network_configured or not node_configured or not done):
-            command = self.stdin_to_command(screen, height, display_type, self.HOST)
+            command = stdin_to_command(screen, height, display_type, self.HOST)
             command_color = "#" + str(STATUS.COMMAND) + "[" + command + "]"
             command_error = "#" + str(STATUS.YELLOW) + "[" + command + "]"
             if (network_configured and node_configured and done):
@@ -218,6 +232,8 @@ class Node:
     # end of initiate
 
 
+    """Refresh the window
+    """
     def print_screen(self, screen, control, message):
         global history
         height = len(history)
@@ -230,6 +246,8 @@ class Node:
         screen.refresh()
 
 
+    """Print the single line to the window based on CONROL code
+    """
     def print_single_line(self, screen, height, control, message):
         global STATUS, PEER_STATUS, CONTROL, MESSAGE_TYPE, PRINTABLE
 
@@ -277,7 +295,8 @@ class Node:
             offset += len(str)
 
 
-    # this function will roll up the screen if the screen has been fully occupied
+    """Roll up the screen if the screen has been fully occupied
+    """
     def roll_up_screen(self, screen):
         global history
         global window_size
@@ -294,6 +313,8 @@ class Node:
                 self.print_single_line(screen, index, line[0], line[1])
 
 
+    """Get the address of local node
+    """
     def address_generator(self, host):
         #prefix = "10.11.11."
         prefix = "192.168.1."
@@ -302,30 +323,29 @@ class Node:
         return host_address
 
 
-    def terminate(self, thread):
-        exc = ctypes.py_object(SystemExit)
-        res = ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(thread.ident), exc)
-        if res == 0:
-            raise ValueError("nonexistent thread id")
-        elif res > 1:
-            ctypes.pythonapi.PyThreadState_SetAsyncExc(thread.ident, None)
-            raise SystemError("PyThreadState_SetAsyncExc failed")
-
-
+"""Class Router will provide Hello, Update, Server, Event monitor, Info Flood mechanisms to the network
+"""
 class Router(Node):
     def __init__(self):
         Node.__init__(self)
 
 
+    """Call super's method
+    """
     def reset(self):
         Node.reset(self)
 
 
+    """Call super's method, and start run the method "operation"
+    """
     def init(self):
         Node.init(self)
         curses.wrapper(self.operation)  # The main function will runs in a new screen which can support customised commands
 
 
+    """Core method, will start the thread of routing, and the thread of event monitor,
+       and provide "show" functions to the user for displaying information of the network
+    """
     def operation(self, screen):
         global history, window_size, height
         global STATUS, PEER_STATUS, CONTROL, MESSAGE_TYPE, PRINTABLE
@@ -353,7 +373,7 @@ class Router(Node):
 
         # user can input command now
         while True:
-            command = self.stdin_to_command(screen, height, display_type, self.HOST)
+            command = stdin_to_command(screen, height, display_type, self.HOST)
             command_color = "#" + str(STATUS.COMMAND) + "[" + command + "]"
             command_error = "#" + str(STATUS.YELLOW) + "[" + command + "]"
 
@@ -465,6 +485,8 @@ class Router(Node):
             screen.refresh()
 
 
+    """Core method of routing, will analyse received packets and call relating methods for processing them
+    """
     def handle_communication(self, screen, start):
         global STATUS, PEER_STATUS, CONTROL, MESSAGE_TYPE, PRINTABLE
         global PORT, UPDATE_INTERVAL, UPDATE_TIMEOUT, HELLO_INTERVAL, HELLO_TIMEOUT, HELLO_LOST, SERVER_INTERVAL
@@ -733,16 +755,6 @@ class Router(Node):
                 self.DSTList.update({new_destination:new_distance})  # update the destination list
 
 
-    def terminate(self, thread):
-        exc = ctypes.py_object(SystemExit)
-        res = ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(thread.ident), exc)
-        if res == 0:
-            raise ValueError("nonexistent thread id")
-        elif res > 1:
-            ctypes.pythonapi.PyThreadState_SetAsyncExc(thread.ident, None)
-            raise SystemError("PyThreadState_SetAsyncExc failed")
-
-
     # this function will do sending updates
     def send_update(self, dh_address):
         global MESSAGE_TYPE, PORT
@@ -837,17 +849,18 @@ class Router(Node):
 
 
     def event_call_back(self, channel):
-        global EVENT_DETECTED
-        EVENT_DETECTED = 1
+        self.EVENT_DETECTED = 1
 
 
+    """Core method of event monitor, will monitor the changes of the voltage on specific PINs, and
+       send event data packets to the designated node
+    """
     def handle_sensor_event(self, screen, start):
-        global EVENT_DETECTED
         global STATUS, PEER_STATUS, CONTROL, MESSAGE_TYPE, PRINTABLE
 
         time.sleep(1)
         while True:
-            if (EVENT_DETECTED):  # waiting for event detection signal
+            if (self.EVENT_DETECTED):  # waiting for event detection signal
                 if GPIO.input(PIR_PIN):  # signal from 0 -> 1, node being triggered
                     time0t1 = datetime.datetime.now()
                     timestamp_string = str(time0t1.replace(microsecond = 0))
@@ -867,7 +880,7 @@ class Router(Node):
                                 distance = len(route_list) - 1
                                 tBlinkGreen = threading.Thread(target = self.blink_green, args = (distance, ))  # blink the Green LED
                                 tBlinkGreen.start()
-                                EVENT_DETECTED = 0
+                                self.EVENT_DETECTED = 0
                                 break
 
                     elif (self.SERVER == self.HOST):  # if local node is the server, send the message to laptop directly
@@ -877,7 +890,7 @@ class Router(Node):
                         socket_s.sendto(message, (self.LAPTOP_ADD, PORT))
                         tBlinkGreen = threading.Thread(target = self.blink_green, args = (1, ))  # blink the Green LED
                         tBlinkGreen.start()
-                        EVENT_DETECTED = 0
+                        self.EVENT_DETECTED = 0
 
                 else:  # signal form 1 -> 0, object is leaving or keeping still
                     time1t0 = datetime.datetime.now()
@@ -898,7 +911,7 @@ class Router(Node):
                                 distance = len(route_list) - 1
                                 tBlinkGreen = threading.Thread(target = self.blink_green, args = (distance, ))  # blink the Green LED
                                 tBlinkGreen.start()
-                                EVENT_DETECTED = 0
+                                self.EVENT_DETECTED = 0
                                 break
 
                     elif (self.SERVER == self.HOST):  # if local node is the server
@@ -908,10 +921,22 @@ class Router(Node):
                         socket_s.sendto(message, (self.LAPTOP_ADD, PORT))
                         tBlinkGreen = threading.Thread(target = self.blink_green, args = (1, ))  # blink the Green LED
                         tBlinkGreen.start()
-                        EVENT_DETECTED = 0
+                        self.EVENT_DETECTED = 0
             # end of big if
             time.sleep(0.5)
         # end of big while
+
+
+    """For gracefully terminate the threads
+    """
+    def terminate(self, thread):
+        exc = ctypes.py_object(SystemExit)
+        res = ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(thread.ident), exc)
+        if res == 0:
+            raise ValueError("nonexistent thread id")
+        elif res > 1:
+            ctypes.pythonapi.PyThreadState_SetAsyncExc(thread.ident, None)
+            raise SystemError("PyThreadState_SetAsyncExc failed")
 
 
     # this function will blink blue LED in order to react to ACK of triggered message
