@@ -968,7 +968,7 @@ def stdin_to_command(screen, height, type, HOST):
     screen.move(height, 0)
     screen.clrtoeol()
     if (type == 0):  # provides two interface: before and after the protocol initialisation
-        screen.addstr("[Command Line Interface]> ")
+        screen.addstr("[RMP Interface]> ")
     elif (type == 1):
         screen.addstr(height, 0, "[RMP node " + str(HOST) + "]# ")
 
