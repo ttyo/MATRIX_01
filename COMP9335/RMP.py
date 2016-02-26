@@ -741,7 +741,8 @@ class Router(Node):
                     self.reply_sensor_ack(path_address, destination_node, timestamp_float)
 
 
-    # this function will do updating local table and destination based on the received table
+    """will do updating local table and destination based on the received table
+    """
     def handle_route_update(self, received_table):
         for update_list in received_table:
             new_destination = int(update_list[-1])
@@ -755,7 +756,8 @@ class Router(Node):
                 self.DSTList.update({new_destination:new_distance})  # update the destination list
 
 
-    # this function will do sending updates
+    """will do sending updates
+    """
     def send_update(self, dh_address):
         global MESSAGE_TYPE, PORT
 
@@ -771,7 +773,8 @@ class Router(Node):
         socket_s.sendto(message, (dh_address, PORT))
 
 
-    # this function will do sending hello
+    """will do sending hello
+    """
     def send_hello(self, dh_address, sequenceNum):
         global MESSAGE_TYPE, PORT
 
@@ -783,7 +786,8 @@ class Router(Node):
         socket_s.sendto(message, (dh_address, PORT))
 
 
-    # this function will do replying hello
+    """will do replying hello
+    """
     def reply_ack(self, dh_address, sequenceNum):
         global MESSAGE_TYPE, PORT
 
@@ -795,7 +799,8 @@ class Router(Node):
         socket_s.sendto(message, (dh_address, PORT))
 
 
-    # this function will do sending server information
+    """this function will do sending server information
+    """
     def send_server_info(self, dh_address):
         global MESSAGE_TYPE, PORT
 
@@ -807,7 +812,8 @@ class Router(Node):
         socket_s.sendto(message, (dh_address, PORT))
 
 
-    # this function will do replying server
+    """will do replying server
+    """
     def reply_server(self, path_address, source_node):
         global MESSAGE_TYPE, PORT
 
@@ -819,7 +825,8 @@ class Router(Node):
         socket_s.sendto(message, (path_address, PORT))
 
 
-    # this function will generate triggered message to server, including timestamp, SOURCE -> SERVER
+    """will generate triggered message to server, including timestamp, SOURCE -> SERVER
+    """
     def send_sensor_event(self, path_address, source_node, timestamp_string, timestamp_float, type):
         global MESSAGE_TYPE, PORT
 
@@ -836,7 +843,8 @@ class Router(Node):
         socket_s.sendto(message, (path_address, PORT))
 
 
-    # this function will do replying the triggered message, SERVER -> DESTINATION
+    """will do replying the triggered message, SERVER -> DESTINATION
+    """
     def reply_sensor_ack(self, path_address, destination_node, timestamp_float):
         global MESSAGE_TYPE, PORT
 
@@ -939,21 +947,24 @@ class Router(Node):
             raise SystemError("PyThreadState_SetAsyncExc failed")
 
 
-    # this function will blink blue LED in order to react to ACK of triggered message
+    """will blink blue LED in order to react to ACK of triggered message
+    """
     def blink_blue(self):
         GPIO.output(BLUE_PIN, True)
         time.sleep(LED_DELAY)
         GPIO.output(BLUE_PIN, False)
 
 
-    # this function will blink red LED in order to react to DH lost & packet lost (no ACK)
+    """will blink red LED in order to react to DH lost & packet lost (no ACK)
+    """
     def blink_red(self):
         GPIO.output(RED_PIN, True)
         time.sleep(LED_DELAY)
         GPIO.output(RED_PIN, False)
 
 
-    # this function will blink green LED in order to react to triggered message, the number of LED is based on distance
+    """will blink green LED in order to react to triggered message, the number of LED is based on distance
+    """
     def blink_green(self, distance):
         for i in range(distance):
             GPIO.output(GREEN_PIN, True)
