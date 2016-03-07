@@ -246,7 +246,7 @@ class Node:
         screen.refresh()
 
 
-    """Print the single line to the window based on CONROL code
+    """Print the single line to the window based on CONTROL code
     """
     def print_single_line(self, screen, height, control, message):
         global STATUS, PEER_STATUS, CONTROL, MESSAGE_TYPE, PRINTABLE
