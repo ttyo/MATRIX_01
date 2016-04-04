@@ -498,8 +498,8 @@ class Router(Node):
         socket_l.bind((self.HOST_ADDRESS, PORT))
         sent_time = 0
         sent_time2 = 0
-        sent_time3 = 0
-        sequenceNum = 0
+        #sent_time3 = 0
+        #sequenceNum = 0
         server_reply = []
 
         while True:
@@ -509,12 +509,12 @@ class Router(Node):
                     self.send_server_info(dh_address)
                 sent_time2 = time.time()
 
-            if (((time.time() - sent_time3) >= HELLO_INTERVAL) and CONVERGENCE):  # After convergence, send HELLO
-                for DH_key in DHList:
-                    dh_address = address_generator(DH_key)
-                    send_hello(dh_address, sequenceNum)
-                sequenceNum = (sequenceNum + 1) % SEQ
-                sent_time3 = time.time()
+            #if (((time.time() - sent_time3) >= HELLO_INTERVAL) and CONVERGENCE):  # After convergence, send HELLO
+            #    for DH_key in DHList:
+            #        dh_address = address_generator(DH_key)
+            #        send_hello(dh_address, sequenceNum)
+            #    sequenceNum = (sequenceNum + 1) % SEQ
+            #    sent_time3 = time.time()
 
             if (((time.time() - sent_time) >= UPDATE_INTERVAL) and (not self.CONVERGENCE)):  # Before convergence, send UPDATE
                 for DH_key in self.DHList:
@@ -525,32 +525,32 @@ class Router(Node):
                     self.CONVERGENCE = 1
 
             # calculate the successive lost ACK from a DH, then check whether it is larger then the limitation of SUCCESSIVE_LOST
-            for DH_key in DHList:
-                DHList[DH_key][1] = 0
-                if (sequenceNum < DH[1]):
-                    DHList[DH_key][1] = (SEQ - DHList[DH_key][0]) + sequenceNum
-                else:
-                    DHList[DH_key][1] = sequenceNum - DHList[DH_key][0]
+            #for DH_key in DHList:
+            #    DHList[DH_key][1] = 0
+            #    if (sequenceNum < DH[1]):
+            #        DHList[DH_key][1] = (SEQ - DHList[DH_key][0]) + sequenceNum
+            #    else:
+            #        DHList[DH_key][1] = sequenceNum - DHList[DH_key][0]
             
                 # if a DH is lost, then delete every information from database, and CONVERGENCE status becomes false
-                if (DHList[DH_key][1] >= SUCCESSIVE_LOST):
-                    print_screen(screen, CONTROL.WARNING, "DH node: " + "#" + str(STATUS.RED) + "[" + str(DH_key) + "]" + " is lost")
-                    tBlinkRed = threading.Thread(target = blink_red)
-                    tBlinkRed.start()
+            #    if (DHList[DH_key][1] >= SUCCESSIVE_LOST):
+            #        print_screen(screen, CONTROL.WARNING, "DH node: " + "#" + str(STATUS.RED) + "[" + str(DH_key) + "]" + " is lost")
+            #        tBlinkRed = threading.Thread(target = blink_red)
+            #        tBlinkRed.start()
             
-                    CONVERGENCE = 0
-                    lostDH = int(DH_key)
-                    del DHList[DH_key]
-                    for routing_list in ROUTETable:
-                        for identifier in routing_list:
-                            if (int(identifier) == lostDH) :
-                                ROUTETable.remove(routing_list)
-                                break
+            #        CONVERGENCE = 0
+            #        lostDH = int(DH_key)
+            #        del DHList[DH_key]
+            #        for routing_list in ROUTETable:
+            #            for identifier in routing_list:
+            #                if (int(identifier) == lostDH) :
+            #                    ROUTETable.remove(routing_list)
+            #                    break
             
-                    for DST_key in DSTList:
-                        if (int(DST_key) == lostDH):
-                            del DSTList[DST_key]
-                            break
+            #        for DST_key in DSTList:
+            #            if (int(DST_key) == lostDH):
+            #                del DSTList[DST_key]
+            #                break
 
             # receive the messages from DHs or remote nodes
             try:
@@ -598,19 +598,19 @@ class Router(Node):
 
                 # HELLO message, get sequence number from HELLO
                 # send ACK with the sequence number back
-                if (msg_type == MESSAGE_TYPE.HELLO):
-                    print_screen(screen, CONTROL.UPDATE, "A hello from: " + "#" + str(STATUS.BLUE) + "[node " + str(direct_source_node) + "]")
-                    seq_num = int(data[2])
-                    dh_address = address_generator(direct_source_node)
-                    reply_ack(dh_address, seq_num)
+                #if (msg_type == MESSAGE_TYPE.HELLO):
+                #    print_screen(screen, CONTROL.UPDATE, "A hello from: " + "#" + str(STATUS.BLUE) + "[node " + str(direct_source_node) + "]")
+                #    seq_num = int(data[2])
+                #    dh_address = address_generator(direct_source_node)
+                #    reply_ack(dh_address, seq_num)
                 
                 # ACK from DH, record the received sequence number
-                if (msg_type == MESSAGE_TYPE.ACK):
-                    seq_num = int(data[2])
-                    for DH_key in DHList:
-                        if (direct_source_node == DH_key):
-                            DHList[DH_key][0] = seq_num
-                            break
+                #if (msg_type == MESSAGE_TYPE.ACK):
+                #    seq_num = int(data[2])
+                #    for DH_key in DHList:
+                #        if (direct_source_node == DH_key):
+                #            DHList[DH_key][0] = seq_num
+                #            break
 
                 # A triggered message from SOURCE -> SERVER, response to it via LED(GREEN) on the path
                 # if I am not server, forward it according to routing table
