@@ -29,7 +29,7 @@ import datetime
 from string import printable
 
 
-"""Class Node will provide a based information to a local node
+"""Class Node will provide base infrastructures to a local node
 """
 class Node:
     def __init__(self):
