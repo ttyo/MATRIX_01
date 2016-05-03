@@ -1,13 +1,14 @@
 ############################################################################
 #
 # RIP-like Multi-hop Protocol (RMP)
+# For: COMP(49)335 Wireless Mesh & Sensor Network, UNSW
+# Project Title: Time Synchronisation for Activity Monitoring
 #
 # RMP is a light-weight dynamic routing protocol for sensor network, used in
-# the research project: Time Synchronisation for Activity Monitoring
-#
-# Each node in the protocol will finally has a topology of the whole network while
-# in the convergence status. The metric in RMP is based on hop number, with server
-# (called designated node) flooding mechanism, triggered update, and a periodical
+# the research project Time Synchronisation for Activity Monitoring. Each node in 
+# the protocol will finally has a topology of the whole network while in the 
+# convergence status. The metric in RMP is based on hop number, with server 
+# (called designated node) flooding mechanism, triggered update, and a periodical 
 # hello behaviour between neighbours acting as heart-beat detection for keep-alive
 #
 # Developed on: Python 2.7.10, Raspberry Pi
