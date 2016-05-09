@@ -5,10 +5,10 @@
 # Project Title: Time Synchronisation for Activity Monitoring
 #
 # RMP is a light-weight dynamic routing protocol for sensor network, used in
-# the research project Time Synchronisation for Activity Monitoring. Each node in 
-# the protocol will finally has a topology of the whole network while in the 
-# convergence status. The metric in RMP is based on hop number, with server 
-# (called designated node) flooding mechanism, triggered update, and a periodical 
+# the research project Time Synchronisation for Activity Monitoring. Each node in
+# the protocol will finally has a topology of the whole network while in the
+# convergence status. The metric in RMP is based on hop number, with server
+# (called designated node) flooding mechanism, triggered update, and a periodical
 # hello behaviour between neighbours acting as heart-beat detection for keep-alive
 #
 # Developed on: Python 2.7.10, Raspberry Pi
@@ -32,7 +32,7 @@ from string import printable
 
 """Class Node will provide base infrastructures to a local node
 """
-class Node:
+class Node(object):
     def __init__(self):
         self.TOTAL_NODES = 0
         self.SERVER = 0
@@ -532,13 +532,13 @@ class Router(Node):
             #        DHList[DH_key][1] = (SEQ - DHList[DH_key][0]) + sequenceNum
             #    else:
             #        DHList[DH_key][1] = sequenceNum - DHList[DH_key][0]
-            
+
                 # if a DH is lost, then delete every information from database, and CONVERGENCE status becomes false
             #    if (DHList[DH_key][1] >= SUCCESSIVE_LOST):
             #        print_screen(screen, CONTROL.WARNING, "DH node: " + "#" + str(STATUS.RED) + "[" + str(DH_key) + "]" + " is lost")
             #        tBlinkRed = threading.Thread(target = blink_red)
             #        tBlinkRed.start()
-            
+
             #        CONVERGENCE = 0
             #        lostDH = int(DH_key)
             #        del DHList[DH_key]
@@ -547,7 +547,7 @@ class Router(Node):
             #                if (int(identifier) == lostDH) :
             #                    ROUTETable.remove(routing_list)
             #                    break
-            
+
             #        for DST_key in DSTList:
             #            if (int(DST_key) == lostDH):
             #                del DSTList[DST_key]
@@ -604,7 +604,7 @@ class Router(Node):
                 #    seq_num = int(data[2])
                 #    dh_address = address_generator(direct_source_node)
                 #    reply_ack(dh_address, seq_num)
-                
+
                 # ACK from DH, record the received sequence number
                 #if (msg_type == MESSAGE_TYPE.ACK):
                 #    seq_num = int(data[2])
