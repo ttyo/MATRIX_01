@@ -179,11 +179,11 @@ def main():
             main_s = int(sys.argv[1])
             sub_s = int(sys.argv[2])
         except:
-            print "\nThe script takes exactly two integer parameters as follow, or with a third optional 'test' keyword for test mod:"
+            print "\nThe script takes exactly two integer parameters, or with a third optional 'test' keyword for test mod:"
             print "python Multibit_Trie.py [main stride] [sub stride] [test]"
             exit()
     else:
-        print "\nThe script takes exactly two integer parameters as follow, or with an optional 'test' keyword for test mod:"
+        print "\nThe script takes exactly two integer parameters, or with an optional 'test' keyword for test mod:"
         print "python Multibit_Trie.py [main stride] [sub stride] [test]"
         exit()
 
@@ -224,9 +224,11 @@ def main():
     #
     # pcap file is the capture result of wireshark. The file will be parsed for reading the destination address of
     # packets in the file, to simulate the input of IP packets
-    thread_update_trie = threading.Thread(target=trie.update_trie)
-    thread_update_trie.start()
+
     if not debug_mod:
+        thread_update_trie = threading.Thread(target=trie.update_trie)
+        thread_update_trie.start()
+
         pcapfile = './lookup.pcap'
         ip_counter = 0
         total_time = 0.0
@@ -272,15 +274,11 @@ def main():
         print "\nAverage Lookup Time:"
         print format(total_time / ip_counter, '.10f')
 
-
-
-
-
     elif debug_mod:
-        print "############"
+        print "\n############"
         print "# TEST MOD #"
         print "############\n"
-        print "Entering test mod, please input IP address manually to verify the output, 'exit' to quit:"
+        print "Entering test mod, please input valid IP address manually to verify the output, type 'exit' to quit:"
         while 1:
             ip_right = True
             dst_ip = raw_input('Enter an valid IP address> ')
