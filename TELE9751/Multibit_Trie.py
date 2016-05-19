@@ -4,6 +4,10 @@
 # Dynamic Multibit Trie for IP Lookup
 # For: TELE9751 Internet Design and Equipment Architectures, UNSW
 #
+# Developed on: Python 2.7.11
+# Author: Chengjia Xu, 5025306
+# May, 2016
+#
 # A multibit-trie for IP lookup, simulates a typical routing table in real
 # device, which contains entries based on received "routing entries", and
 # updates itself when new incoming entries come in. It will take a .pcap
@@ -14,10 +18,6 @@
 # lookup.pcap      - for input simulation
 # prefix_input.txt - for constructing routing table (trie)
 # update_input.txt - for updating routing table
-#
-# Developed on: Python 2.7.11
-# Author: Chengjia Xu, 5025306
-# May, 2016
 #
 #############################################################################
 
@@ -38,7 +38,6 @@ class Node(object):
         self.output = {}
         self.swap = {}
         self.swap2 = {}
-
 
     def insert(self, pre, out, sub_out=None, flag=0):
 
@@ -84,7 +83,6 @@ class Node(object):
                         self.output[p].insert(new_pre, self.swap[p], sub_out=sub_out, flag=1)
                     break
 
-
     def search_output(self, dst, default_output):
         for p in self.prefix:
             if len(dst) <= self.main_s:
@@ -99,11 +97,10 @@ class Node(object):
                     else:
                         return self.output[p]
 
-
-    def update_trie(self):
+    def update_trie(self, sleep=2):
         prefix_l, output_l, default_output = handle_file('update_input.txt')
         for i,pre in enumerate(prefix_l):
-            time.sleep(2)
+            time.sleep(sleep)
             start_time = time.clock()  # record the start time for calculating jitter
             out = output_l[i]
             self.update_node(pre, out)
@@ -111,7 +108,6 @@ class Node(object):
             print "\n###################################"
             print "# %-19s %-9s#" % ('[TIME OF ENTRY UPDATE]', time_cost)
             print "###################################\n"
-
 
     def update_node(self, pre, out):
         for p in self.prefix:
@@ -133,13 +129,19 @@ class Node(object):
                         self.output[p] = Node(self.branch_s, self.branch_s)  # sub-node's stride is 2,2
                         self.output[p].insert(new_pre, self.swap2[p], sub_out=out, flag=1)
 
-
     def update_default(self, default, new_default):
         for p in self.prefix:
             if self.output[p] == default:
                 self.output[p] = new_default
             elif type(self.output[p]) is Node:
                 self.output[p].update_default(default, new_default)
+
+    def print_trie(self):
+        pprint.pprint(self.output)
+        print
+        for p in self.output:
+            if type(self.output[p]) is Node:
+                self.output[p].print_trie()
 
 
 """
@@ -280,34 +282,29 @@ def main():
         print format(total_time / ip_counter, '.10f')
 
     elif debug_mod:
-        print "\n############"
-        print "# TEST MOD #"
-        print "############\n"
+        print "\n###################################################"
+        print "#                     TEST MOD                    #"
+        print "###################################################\n"
 
-        # DEBUG part, delete them in final version
         # print the trie structure
-        #print "\n################# Trie Structure ##################"
-        #pprint.pprint(trie.output)  # DEBUG
-        #print
-        #pprint.pprint(trie.output['0011'].output)  # DEBUG
-        #print
-        #pprint.pprint(trie.output['0101'].output)  # DEBUG
-        #print
-        #pprint.pprint(trie.output['1000'].output)  # DEBUG
-        #print
-        #pprint.pprint(trie.output['1000'].output['00'].output)  # DEBUG
-        #print
-        #pprint.pprint(trie.output['1000'].output['00'].output['00'].output)  # DEBUG
-        #print "################# Trie Structure ##################\n"
-
-        print "Entering test mod, please input valid IP address manually to verify the output, type 'exit' to quit:"
+        print "################# Trie Structure ##################"
+        trie.print_trie()
+        print
+        print "Entering test mod, please input valid IP address manually to verify the output."
+        print "type 'exit' to quit, 'update' to do route update manually, for comparing with old & new tries:\n"
         while 1:
             ip_right = True
             dst_ip = raw_input('Enter an valid IP address> ')
             ip_part = dst_ip.split('.')
             if dst_ip == 'exit':
                 break
-            if len(dst_ip) == 0:
+            if dst_ip == 'update':
+                trie.update_trie(sleep=0.5)
+                print "############### New Trie Structure ################"
+                trie.print_trie()
+                print "############### New Trie Structure ################\n"
+                ip_right = False
+            elif len(dst_ip) == 0:
                 ip_right = False
             elif len(ip_part) != 4:
                 print '\nInvalid Ip address\n'
