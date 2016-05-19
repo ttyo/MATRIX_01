@@ -9,7 +9,7 @@
 # prefix_input.txt - for constructing routing table (trie)
 # update_input.txt - for updating routing table
 #
-# Developed on: Python 2.7.10
+# Developed on: Python 2.7.11
 # Author: Chengjia Xu, 5025306
 # May, 2016
 #
