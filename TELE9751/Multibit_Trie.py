@@ -206,19 +206,19 @@ def main():
 
     # DEBUG part, delete them in final version
     # print the trie structure
-    print "\n################# Trie Structure ##################"
-    pprint.pprint(trie.output)  # DEBUG
-    print
-    pprint.pprint(trie.output['0011'].output)  # DEBUG
-    print
-    pprint.pprint(trie.output['0101'].output)  # DEBUG
-    print
-    pprint.pprint(trie.output['1000'].output)  # DEBUG
-    print
-    pprint.pprint(trie.output['1000'].output['00'].output)  # DEBUG
-    print
-    pprint.pprint(trie.output['1000'].output['00'].output['00'].output)  # DEBUG
-    print "################# Trie Structure ##################\n"
+    #print "\n################# Trie Structure ##################"
+    #pprint.pprint(trie.output)  # DEBUG
+    #print
+    #pprint.pprint(trie.output['0011'].output)  # DEBUG
+    #print
+    #pprint.pprint(trie.output['0101'].output)  # DEBUG
+    #print
+    #pprint.pprint(trie.output['1000'].output)  # DEBUG
+    #print
+    #pprint.pprint(trie.output['1000'].output['00'].output)  # DEBUG
+    #print
+    #pprint.pprint(trie.output['1000'].output['00'].output['00'].output)  # DEBUG
+    #print "################# Trie Structure ##################\n"
 
     # Handling pcap file
     #
