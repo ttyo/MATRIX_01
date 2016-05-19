@@ -1,4 +1,20 @@
 #!/usr/bin/python
+############################################################################
+#
+# Dynamic Multibit Trie
+# For: TELE9751 Internet Design and Equipment Architectures, UNSW
+#
+# Multibit_Trie.py - main program
+# lookup.pcap      - for input simulation
+# prefix_input.txt - for constructing routing table (trie)
+# update_input.txt - for updating routing table
+#
+# Developed on: Python 2.7.10
+# Author: Chengjia Xu, 5025306
+# May, 2016
+#
+#############################################################################
+
 import re
 import sys
 import pprint
