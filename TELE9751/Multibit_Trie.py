@@ -262,7 +262,7 @@ def main():
             last_time = float(time_cost)
             print "%-19s %-40s %-15s %-13s %-10s" % (dst_ip, dst_bin_dot, output, time_cost, jitter)
 
-        print "\nJitter Level     Acceptability\n\
+        print "\nJitter Level:    Acceptability:\n\
    <   1 ms      Excellent\n\
    <   5 ms      Extremely Good\n\
    <  20 ms      Very Good\n\
@@ -282,12 +282,15 @@ def main():
         while 1:
             ip_right = True
             dst_ip = raw_input('Enter an valid IP address> ')
+            ip_part = dst_ip.split('.')
             if dst_ip == 'exit':
                 break
             if len(dst_ip) == 0:
                 ip_right = False
+            elif len(ip_part) != 4:
+                print '\nInvalid Ip address\n'
+                ip_right = False
             else:
-                ip_part = dst_ip.split('.')
                 for digit in ip_part:
                     if int(digit) > 255:
                         print '\nInvalid Ip address\n'
