@@ -204,27 +204,10 @@ def main():
         out = output_l[i]
         trie.insert(pre, out)
 
-    # DEBUG part, delete them in final version
-    # print the trie structure
-    #print "\n################# Trie Structure ##################"
-    #pprint.pprint(trie.output)  # DEBUG
-    #print
-    #pprint.pprint(trie.output['0011'].output)  # DEBUG
-    #print
-    #pprint.pprint(trie.output['0101'].output)  # DEBUG
-    #print
-    #pprint.pprint(trie.output['1000'].output)  # DEBUG
-    #print
-    #pprint.pprint(trie.output['1000'].output['00'].output)  # DEBUG
-    #print
-    #pprint.pprint(trie.output['1000'].output['00'].output['00'].output)  # DEBUG
-    #print "################# Trie Structure ##################\n"
-
     # Handling pcap file
     #
     # pcap file is the capture result of wireshark. The file will be parsed for reading the destination address of
     # packets in the file, to simulate the input of IP packets
-
     if not debug_mod:
         thread_update_trie = threading.Thread(target=trie.update_trie)
         thread_update_trie.start()
@@ -278,6 +261,23 @@ def main():
         print "\n############"
         print "# TEST MOD #"
         print "############\n"
+
+        # DEBUG part, delete them in final version
+        # print the trie structure
+        #print "\n################# Trie Structure ##################"
+        #pprint.pprint(trie.output)  # DEBUG
+        #print
+        #pprint.pprint(trie.output['0011'].output)  # DEBUG
+        #print
+        #pprint.pprint(trie.output['0101'].output)  # DEBUG
+        #print
+        #pprint.pprint(trie.output['1000'].output)  # DEBUG
+        #print
+        #pprint.pprint(trie.output['1000'].output['00'].output)  # DEBUG
+        #print
+        #pprint.pprint(trie.output['1000'].output['00'].output['00'].output)  # DEBUG
+        #print "################# Trie Structure ##################\n"
+
         print "Entering test mod, please input valid IP address manually to verify the output, type 'exit' to quit:"
         while 1:
             ip_right = True
