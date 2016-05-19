@@ -1,8 +1,14 @@
 #!/usr/bin/python
 ############################################################################
 #
-# Dynamic Multibit Trie
+# Dynamic Multibit Trie for IP Lookup
 # For: TELE9751 Internet Design and Equipment Architectures, UNSW
+#
+# A multibit-trie for IP lookup, simulates a typical routing table in real
+# device, which contains entries based on received "routing entries", and
+# updates itself when new incoming entries come in. It will take a .pcap
+# file as an simulation for input, to calculate jitter based on lookup time
+# of each entry.
 #
 # Multibit_Trie.py - main program
 # lookup.pcap      - for input simulation
