@@ -4,21 +4,18 @@
 # Dynamic Multibit Trie for IP Lookup
 # For: TELE9751 Switching Systems Architecture, UNSW
 #
-# Author: Chengjia Xu, 5025306
-# Developed on: Python 2.7.11 @May, 2016
-#
 # A multibit-trie for IP lookup, simulates a typical routing table in real
 # device, which contains entries based on received "routing entries", and
 # updates itself when new incoming entries come in. It will take a .pcap
 # file as an simulation for input, to calculate jitter based on lookup time
 # of each entry.
 #
-# Multibit_Trie.py - main program
-# lookup.pcap      - for input simulation
-# prefix_input.txt - for constructing routing table (trie)
-# update_input.txt - for updating routing table
-#
 #############################################################################
+
+__author__ = "Chengjia Xu 5025306"
+__license__ = "GPL"
+__version__ = "0.9"
+__email__ = ["chengjia.xu@student.unsw.edu.au", "z5025306@zmail.unsw.edu.au"]
 
 import re
 import sys
@@ -315,12 +312,12 @@ def main():
             elif len(dst_ip) == 0:
                 ip_right = False
             elif len(ip_part) != 4:
-                print '\nInvalid Ip address\n'
+                print '\nInvalid IP address\n'
                 ip_right = False
             else:
                 for digit in ip_part:
                     if int(digit) > 255:
-                        print '\nInvalid Ip address\n'
+                        print '\nInvalid IP address\n'
                         ip_right = False
 
             if ip_right:
