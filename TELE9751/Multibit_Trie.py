@@ -94,16 +94,7 @@ class Node(object):
                         return self.output[p]
 
     def update_trie(self, sleep=2):
-        #prefix_l, output_l, default_output = handle_file('update_input.txt')  # DEBUG uncomment
-
-        prefix_l = ['1000010','10000101','1000110101','1000110110']
-        output_l = ['cc3','cc4','cc5','cc6']
-        default_output = 'cc999'
-
-        print prefix_l
-        print output_l
-        print default_output
-
+        prefix_l, output_l, default_output = handle_file('update_input.txt')
 
         for i,pre in enumerate(prefix_l):
             time.sleep(sleep)
@@ -314,8 +305,8 @@ def main():
             if dst_ip == 'exit':
                 break
             if dst_ip == 'update':
-                trie.update_trie(sleep=0.2)
                 print
+                trie.update_trie(sleep=0.2)
                 print "############### New Trie Structure ################"
                 trie.print_trie()
                 print "############### New Trie Structure ################\n"
