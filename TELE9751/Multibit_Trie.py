@@ -94,7 +94,17 @@ class Node(object):
                         return self.output[p]
 
     def update_trie(self, sleep=2):
-        prefix_l, output_l, default_output = handle_file('update_input.txt')
+        #prefix_l, output_l, default_output = handle_file('update_input.txt')  # DEBUG uncomment
+
+        prefix_l = ['1000010','10000101','1000110101','1000110110']
+        output_l = ['cc3','cc4','cc5','cc6']
+        default_output = 'cc999'
+
+        print prefix_l
+        print output_l
+        print default_output
+
+
         for i,pre in enumerate(prefix_l):
             time.sleep(sleep)
             start_time = time.clock()  # record the start time for calculating jitter
@@ -192,8 +202,9 @@ def handle_file(path, sort=False):
                 continue
             prefix_l.append(k)
             output_l.append(database[k])
-        prefix_l.insert(0, None)
-        output_l.insert(0, default_output)
+        if default_output is not None:
+            prefix_l.insert(0, None)
+            output_l.insert(0, default_output)
 
     return prefix_l, output_l, default_output
 
