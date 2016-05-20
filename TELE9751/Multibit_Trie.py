@@ -2,11 +2,10 @@
 ############################################################################
 #
 # Dynamic Multibit Trie for IP Lookup
-# For: TELE9751 Internet Design and Equipment Architectures, UNSW
+# For: TELE9751 Switching Systems Architecture, UNSW
 #
-# Developed on: Python 2.7.11
 # Author: Chengjia Xu, 5025306
-# May, 2016
+# Developed on: Python 2.7.11 @May, 2016
 #
 # A multibit-trie for IP lookup, simulates a typical routing table in real
 # device, which contains entries based on received "routing entries", and
@@ -105,9 +104,17 @@ class Node(object):
             out = output_l[i]
             self.update_node(pre, out)
             time_cost = format(time.clock() - start_time, '.6f')
-            print "\n###################################"
+            if sleep == 2:
+                print "\n###################################"
             print "# %-19s %-9s#" % ('[TIME OF ENTRY UPDATE]', time_cost)
-            print "###################################\n"
+            if pre is None:
+                print "# [Updated Prefix] %-15s#" % ('__all')
+            else:
+                print "# [Updated Prefix] %-15s#" % (pre)
+            print "# [New output] %-15s    #" % (out)
+            if sleep == 2:
+                print "###################################"
+                print "%-19s %-40s %-15s %-13s %-10s" % ('DESTINATION IP', 'IP IN BINARY', 'OUTPUT PORT', 'LOOKUP TIME', 'Delta TIME')
 
     def update_node(self, pre, out):
         for p in self.prefix:
@@ -299,7 +306,8 @@ def main():
             if dst_ip == 'exit':
                 break
             if dst_ip == 'update':
-                trie.update_trie(sleep=0.5)
+                trie.update_trie(sleep=0.2)
+                print
                 print "############### New Trie Structure ################"
                 trie.print_trie()
                 print "############### New Trie Structure ################\n"
@@ -318,8 +326,11 @@ def main():
             if ip_right:
                 dst_bin = ''.join(bin(int(x) + 256)[3:] for x in dst_ip.split('.'))
                 dst_bin_dot = '.'.join(re.findall('........', dst_bin))
-                print "\n%-19s %-40s %-10s" % ('DESTINATION IP', 'IP IN BINARY', 'OUTPUT PORT')
-                print "%-19s %-40s %-10s\n" % (dst_ip, dst_bin_dot, trie.search_output(dst_bin, default_output))
+                start_time = time.clock()
+                output = trie.search_output(dst_bin, default_output)
+                time_cost = format(time.clock() - start_time, '.6f')
+                print "\n%-19s %-40s %-15s %-13s" % ('DESTINATION IP', 'IP IN BINARY', 'OUTPUT PORT', 'LOOKUP TIME')
+                print "%-19s %-40s %-15s %-13s\n" % (dst_ip, dst_bin_dot, output, time_cost)
 
 
 if __name__ == '__main__':
