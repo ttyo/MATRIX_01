@@ -160,7 +160,7 @@ class Node(object):
                     try:
                         parameter = command.split()
                         self.HOST = int(parameter[1])
-                        self.HOST_ADDRESS = self.address_generator(self.HOST)
+                        self.HOST_ADDRESS = "1.1.1.1"
                         #self.HOST_ADDRESS = socket.gethostbyname(socket.gethostname())
                         for num in parameter[2:]:
                             DH = int(num)
