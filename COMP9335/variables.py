@@ -1,0 +1,33 @@
+class Variables:
+    global PORT, UPDATE_INTERVAL, UPDATE_TIMEOUT, HELLO_INTERVAL, HELLO_TIMEOUT, SUCCESSIVE_LOST, HELLO_LOST, DATA_LOST, SERVER_INTERVAL
+    global SEQ, CONVERGENCE, BUFFER, SERVER_CONVERGENCE, EVENT_DETECTED
+    global GREEN_PIN, BLUE_PIN, RED_PIN, BUTTON_PIN, PIR_PIN
+    global LED_DELAY
+
+    PORT = 55056  # for sending / listening table updates
+    UPDATE_INTERVAL = 5.0
+    UPDATE_TIMEOUT = 15.0
+    HELLO_INTERVAL = 5.0
+    HELLO_TIMEOUT = 2.0
+    SERVER_INTERVAL = 5.0
+    SUCCESSIVE_LOST = 3
+    SEQ = 65535
+    CONVERGENCE = 0
+    SERVER_CONVERGENCE = 0
+    BUFFER = 1024
+    HELLO_LOST = 4
+    GREEN_PIN = 25
+    RED_PIN = 21
+    BLUE_PIN = 23
+    LED_DELAY = 0.5
+    PIR_PIN = 16
+    EVENT_DETECTED = 0
+
+    def enum(self, **enums):
+        return type('Enum', (), enums)
+
+    STATUS = self.enum(NORMAL = 1, WARNING = 2, COMMAND = 3, RED = 4, GREEN = 5, ERROR = 6, YELLOW = 7, BLUE = 8, RESULT = 9)
+    PEER_STATUS = self.enum(OK = 1, INVALID = 2, DEAD = 3)
+    CONTROL = self.enum(NORMAL = 1, WARNING = 2, UPDATE = 3, HELLO = 4, ERROR = 5, RESULT = 6)
+    MESSAGE_TYPE = self.enum(UPDATE = 1, HELLO = 2, ACK = 3, SERVERACK = 4, DATAACK = 5, SERVER = 6, DATA_IN = 7, DATA_OUT = 8)
+    PRINTABLE = map(ord, printable)

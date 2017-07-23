@@ -1,0 +1,9 @@
+/**
+	copy shpy.pl to this folder
+
+	run command:
+	./test.pl
+
+	The test of 'single.sh' may fail couse the command date.
+	If shell and python are not run in the same second, it would be failed. Try to test again.
+**/

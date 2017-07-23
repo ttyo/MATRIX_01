@@ -1,0 +1,15 @@
+COMP9041 assignment 2 diary
+Date	Start	Stop		Activity			Comments
+13/10	13:00	15:00		started level 0			working on basic interface and basic activities like login and displaying user info
+13/10	15:00	19:00		working on level 0 and debug	mainly working on search user and debug on level 0
+14/10	13:00	17:00		doing search and level 1	now the search results of users can be clicked, and user can logout and sending bleats
+15/10	13:00	18:00		doing level 1 and debug		fixed some bugs in click and search
+16/10	10:00	17:00		starting level 2		user can now add/remove listens and show bleats from user
+17/10	14:00	18:00		doing level 2 and debug		bleats are now clickable and show respons to the bleat, also user can view bleats from listens noew
+18/10	16:00	18:00		finished level 2 and debug	debug
+20/10	13:00	17:00		working on level 3		very big UI adjustment, fixed many bugs, bleats can be responded, user acconut can be created
+21/10	14:00	21:00		working on level 3		user can now create profile file, account recovery, created interface for images management
+22/10	14:00	21:00		debug				fixed many bugs on level 3
+24/10	10:00	22:00		working on level 3		bleats can be deleted, created interface for account management, and both avatar and background images can be uploaded/changes/deleted
+25/10	10:00	16:00		working on level 3		changed URL, finished account management, now account can be suspended/re-activated/deleted
+25/10	16:00	21:00		debug and comments, level 3	adding comments and fixed some small bugs, currently failed on: Level3, pagination / finished attachment in bleat, emergency updatd in notification, now user can receive notification normally

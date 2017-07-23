@@ -1,0 +1,16 @@
+Date	Start	Stop	Activity		Comment
+12/09	13:00	18:00	finished level 0	level 0 is quite easy
+13/09	13:00	13:30	updated level 0		updated in some small details
+13/09	13:00	17:00	finished level 1	level 1 is easy too, not much things need to be handled
+14/09	10:00	18:00	did level 2		level 2 needs some more conditions
+15/09	13:00	17:00	finished level 2	
+15/09	14:00	17:00	finished level 3	level 3 is based on level 2, finished it very quickly
+15/09	17:00	19:00	did level 4		level 4 needs some special consitions
+16/09	10:00	19:00	updated level 4		worked on nested loop
+20/09	15:00	22:00	updated level 4		nested loop/if condition is finished, updating structure, handle more conditions
+21/09	14:00	19:00	updated level 4		bug fix
+23/09	13:00	17:00	updated level 4		add more conditions (like chmod)
+26/09	13:00	17:00	updated structure	add more conditions, modifier loop/if structure to make them more robust
+27/09	12:00	18:00	updated in echo		made echo can handle many special conditions
+
+note: my code still cannot solve type conversion, that is, for example, a variable is "string", when it comes to IF condition, it will be converted to type "int", but in the following ELSE condition, it should be still treated as type "string", but my code will handle the variable as "int" in ELSE
