@@ -95,11 +95,6 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
-/**
- * Author
- * Chengjia Xu, CSE of UNSW
- * ID: 5025306
- */
 
 public class cdht_ex { //class cdht_ex will run DHT, along with the other 4 threads
 	public static int peerN;
