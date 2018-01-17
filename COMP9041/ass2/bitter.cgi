@@ -1,9 +1,5 @@
 #!/usr/bin/perl -w
 
-# written by andrewt@cse.unsw.edu.au September 2015
-# as a starting point for COMP2041/9041 assignment 2
-# http://cgi.cse.unsw.edu.au/~cs2041/assignments/bitter/
-
 use CGI qw/:all/;
 use CGI::Carp qw/fatalsToBrowser warningsToBrowser/;
 use File::Copy;
