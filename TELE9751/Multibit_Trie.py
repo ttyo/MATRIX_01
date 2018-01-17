@@ -12,11 +12,6 @@
 #
 #############################################################################
 
-__author__ = "Chengjia Xu 5025306"
-__license__ = "GPL"
-__version__ = "0.9"
-__email__ = ["chengjia.xu@student.unsw.edu.au"]
-
 import re
 import sys
 import pprint
