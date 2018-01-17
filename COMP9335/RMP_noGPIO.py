@@ -7,10 +7,6 @@
 # (called designated node) flooding mechanism, triggered update, and a periodical hello
 # behaviour between neighbours acting as heart-beat detection for keep-alive
 #
-# Developed on: Python 2.7.10
-# Author: Chengjia Xu, 5025306, CSE of UNSW
-# Oct - Dec, 2015
-#
 
 import re
 import time
